@@ -2,10 +2,9 @@ body {
     min-width: 960px;
     margin: 0;
     padding: 0;
-    background-color: #596A74;
-    background-image: url(/media/images/vgradient.png);
-    background-repeat: repeat-x;
+    background-color: #729778;
     font-size: 16px;
+	font-family: Georgia;
 }
 a:link, a:visited, a:hover { color: blue; text-decoration: none; }
 
@@ -15,15 +14,24 @@ div#title {
     height: 55px;
     position: relative;
     margin-bottom: 0.8em;
-    background-color: #F1F1F1;
-    color: #000000;
-    -moz-border-radius-bottomleft: 10px;
-    -moz-border-radius-bottomright: 10px;
-    -webkit-border-bottom-left-radius: 10px;
-    -webkit-border-bottom-right-radius: 10px;
+    background-color: #FAFAF0;
+    color: #729768;
+    -moz-border-radius-bottomleft: 12px;
+    -moz-border-radius-bottomright: 12px;
+    -webkit-border-bottom-left-radius: 12px;
+    -webkit-border-bottom-right-radius: 12px;
 }
-div#title img { float: left; padding: 0.2em; margin: 0; }
-div#title h2 { float: left; margin: 0 0 0 0.4em; font-style: italic; margin-top: 0.55em; }
+div#title img { 
+        float: left; 
+        padding: 0.25em;
+        padding-left: 0.5em;
+        margin: 0;
+}
+div#title h2 { 
+	float: left; 
+	margin: 0 0 0 0.4em; 
+	margin-top: 0.55em; 
+}
 
 ul.inline { margin: 0; padding: 0; }
 ul.inline li {
@@ -33,7 +41,13 @@ ul.inline li {
     *display: inline; /* IE */
 }
 
-ul#links { position: absolute; bottom: 0; right: 0; padding: 0.7em; padding-bottom: 0.5em; font-size: large; }
+ul#links { 
+	position: absolute; 
+	bottom: 0; right: 0; 
+	padding: 0.7em; 
+	padding-bottom: 0.5em; 
+	font-size: large; 
+}
 ul#links li { margin-left: 0.8em; }
 ul#links li a:link, ul#links li a:visited { color: #000000; }
 ul#links li a:hover { text-decoration: underline; }
@@ -42,14 +56,13 @@ div#wrapper { margin: 0; }
 
 div#nav ul {
     padding-left: 15.3em;
-    font-family: Verdana, sans-serif;
 }
 div#nav ul li {
     background-color: #DADADA;
-    -moz-border-radius-topleft: 16px;
-    -moz-border-radius-topright: 16px;
-    -webkit-border-top-left-radius: 16px;
-    -webkit-border-top-right-radius: 16px;
+    -moz-border-radius-topleft: 20px;
+    -moz-border-radius-topright: 20px;
+   -webkit-border-top-left-radius: 20px;
+    -webkit-border-top-right-radius: 20px;
 }
 div#nav ul li a {
     display: block;
@@ -57,20 +70,24 @@ div#nav ul li a {
     text-decoration: none;
     text-align: center;
     color: #888888;
-    padding-top: 0.4em;
+    padding-top: 0.5em;
     padding-bottom: 0.25em;
 }
 
-div#nav ul li.current { background-color: #F1F1F1; font-weight: bold; }
+div#nav ul li.current {
+    background-color: #FAFAF0;
+    font-weight: bold;
+}
 div#nav ul li.current a { color: #000000; }
-div#nav ul li:hover { background-color: #F1F1F1; }
+
+div#nav ul li:hover { background-color: #FAFAF0; }
 div#nav ul li:hover a { color: #2D2F32; }
 
 div#workarea {
-    background-color: #F1F1F1;
+    background-color: #FAFAF0;
     padding: 0.8em;
-    -moz-border-radius: 10px;
-    -webkit-border-radius: 10px;
+    -moz-border-radius: 12px;
+    -webkit-border-radius: 12px;
 }
 
 div#presentation_wrapper {
@@ -81,9 +98,7 @@ div#presentation_wrapper {
 div#presentation_wrapper p { font-size: large; }
 div#presentation_wrapper p a:hover { text-decoration: underline; }
 div#presentation div {
-    background-image: url(/media/images/vgradient.png);
-    background-repeat: repeat-x;
-    background-color: #FFFFFF;
+    background-color: #729768;
     color: white;
     position: relative;
     float: left;
@@ -93,14 +108,14 @@ div#presentation div {
     text-align: center;
     margin: 1.6em;
     padding: 0.8em;
-    border: 5px solid #F1F1F1;
+    border: 5px solid #729768;
     -moz-border-radius: 20px;
     -webkit-border-radius: 20px;
 }
 div#presentation p { text-align: left; font-size: medium; }
 
 div#presentation div:hover {
-    border: 5px solid #FFCE9C;
+    border: 5px solid #FF4400;
 }
 
 div#presentation h2 {  }
@@ -109,8 +124,8 @@ div#presentation img { border: 0; position: relative; bottom: 0px;}
 div#sidebar {
     width: 13.7em;
     float: left;
-    -moz-border-radius: 10px;
-    -webkit-border-radius: 10px;
+    -moz-border-radius: 12px;
+    -webkit-border-radius: 12px;
 }
 
 div#configbar {
@@ -119,8 +134,8 @@ div#configbar {
     background-color: #FFFFFF;
     margin-bottom: 0.8em;
     padding: 0.8em;
-    -moz-border-radius: 10px;
-    -webkit-border-radius: 10px;
+    -moz-border-radius: 12px;
+    -webkit-border-radius: 12px;
 }
 div#configbar span {
     padding: 2px;
@@ -134,8 +149,8 @@ div#content, div.about_content {
     text-align: center;
     padding: 0.8em;
     background-color: #FFFFFF;
-    -moz-border-radius: 10px;
-    -webkit-border-radius: 10px;
+    -moz-border-radius: 12px;
+    -webkit-border-radius: 12px;
 }
 
 div.about_content { text-align: left; }
@@ -143,15 +158,15 @@ div.about_content { text-align: left; }
 .sidebox {
     overflow: hidden;
     margin: 0;
-    margin-bottom: 1em;
+    margin-bottom: 2.2em;
 /*     background: url(sbbody-r.gif) no-repeat bottom right; */
     font-size: 90%;
 }
 .boxhead {
 /*     background: url(sbhead-r.gif) no-repeat top right; */
-    background-color: #9DADC6;
-    -moz-border-radius: 10px;
-    -webkit-border-radius: 10px;
+    background-color: #729768;
+    -moz-border-radius: 12px;
+    -webkit-border-radius: 12px;
     margin: 0;
     padding: 0;
     text-align: left;
@@ -159,7 +174,7 @@ div.about_content { text-align: left; }
 .boxhead h2 {
 /*     background: url(sbhead-l.gif) no-repeat top left; */
     margin: 0;
-    padding: 0.5em 0.8em 0.3em;
+    padding: 0.3em 0.8em 0.3em 0.5em;
     color: white; 
     font-weight: bold; 
     font-size: 1.1em; 
@@ -167,31 +182,35 @@ div.about_content { text-align: left; }
 }
 .boxbody {
 /*     background: url(sbbody-l.gif) no-repeat bottom left; */
-/*     background-color: #F1F1F1; */
-    -moz-border-radius-bottomleft: 10px;
-    -moz-border-radius-bottomright: 10px;
-    -webkit-border-radius-bottomleft: 10px;
-    -webkit-border-radius-bottomright: 10px;
+/*     background-color: #FAFAF0; */
+    -moz-border-radius-bottomleft: 12px;
+    -moz-border-radius-bottomright: 12px;
+    -webkit-border-radius-bottomleft: 12px;
+    -webkit-border-radius-bottomright: 12px;
     margin: 0;
-    padding: 0.5em 0.5em 0.5em;
+    padding: 0.5em 0.5em 0.5em 0;
 /*     padding: 5px 30px 31px; */
 }
 .boxbody ul {
   list-style: none;
   margin: 0;
   padding: 0.2em;
-  margin-bottom: 0.5em;
 }
 .boxbody ul li { padding-left: 0.3em; }
+/* .boxbody ul li ul { margin: 0; padding: 0; }
+.boxbody ul li ul h4 { margin: 0 0 0.4em; padding: 0; font-size: 1em; font-weight: normal;}
+.boxbody ul li ul li { margin-left: 1em; } */
 .boxbody input { margin-left: 0; vertical-align: top; }
+/* .boxbody label { vertical-align: top; } */
+/*.boxbody input[type="text"] {
+    margin-left: 0; margin-right: 2.5em; margin-bottom: 0.2em; float: right; width: 2em;
+}*/
+/* .boxbody select {float: right;} */
 #options li { margin-bottom: 0.8em; }
 .seriescolor { float: right; margin-top: 2px; height: 13px; width: 14px; }
-a.checkall, a.uncheckall { font-size: normal; color: #AAAAAA; }
-a.checkall { margin-left: 0.4em; }
 
 /* tables */
 table.tablesorter, table.commits {
-    font-family:arial;
     font-size: 11pt;
     text-align: left;
     border-collapse: collapse;
@@ -300,7 +319,7 @@ table.tablesorter tbody tr.highlight td {
 
 table.commits { width: 100%; margin-top: 2em;}
 table.commits th, table.commits td { padding: 0.5em; }
-table.commits th { background-color: #F1F1F1; font-weight: normal; }
+table.commits th { background-color: #FAFAF0; font-weight: normal; }
 table.commits tbody tr td {
   border-bottom: 1px solid #CDCDCD;
   vertical-align: top;
@@ -321,11 +340,15 @@ div.miniplot {
     float: left;
     height: 130px;
     width: 23%;
-    -moz-border-radius: 10px;
-    -webkit-border-radius: 10px;
+    -moz-border-radius: 12px;
+    -webkit-border-radius: 12px;
 }
-div.miniplot:hover {background-color: #F1F1F1;}
-.jqplot-highlighter-tooltip { -moz-border-radius: 10px; -webkit-border-radius: 10px; }
+div.miniplot:hover {background-color: #FAFAF0;}
+
+div.jqplot-highlighter-tooltip {
+    -moz-border-radius: 12px;
+    -webkit-border-radius: 12px;
+}
 
 /* new clearfix */
 .clearfix:after {
@@ -338,3 +361,5 @@ div.miniplot:hover {background-color: #F1F1F1;}
 }
 * html .clearfix             { zoom: 1; } /* IE6 */
 *:first-child+html .clearfix { zoom: 1; } /* IE7 */
+
+

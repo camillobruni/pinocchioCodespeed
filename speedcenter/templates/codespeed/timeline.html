@@ -1,14 +1,14 @@
 {% extends "base.html" %}
 {% block title %}: Timeline{% endblock %}
 {% block script %}
-<!--[if IE]><script language="javascript" type="text/javascript" src="/media/js/jqplot/excanvas.min.js"></script><![endif]-->
-<link rel="stylesheet" type="text/css" href="../media/js/jqplot/jquery.jqplot.min.css" />
-<script type="text/javascript" src="../media/js/jqplot/jquery.jqplot.min.js"></script>
-<script type="text/javascript" src="../media/js/jqplot/jqplot.cursor.min.js"></script>
-<script type="text/javascript" src="../media/js/jqplot/jqplot.highlighter.min.js"></script>
-<script type="text/javascript" src="../media/js/jqplot/jqplot.dateAxisRenderer.min.js"></script>
-<script type="text/javascript" src="../media/js/jqplot/jqplot.canvasTextRenderer.min.js"></script>
-<script type="text/javascript" src="../media/js/jqplot/jqplot.canvasAxisLabelRenderer.min.js"></script>
+<!--[if IE]><script language="javascript" type="text/javascript" src="{{ settings.MEDIA_URL }}/js/jqplot/excanvas.min.js"></script><![endif]-->
+<link rel="stylesheet" type="text/css" href="{{ MEDIA_URL }}/js/jqplot/jquery.jqplot.min.css" />
+<script type="text/javascript" src="{{ MEDIA_URL }}/js/jqplot/jquery.jqplot.min.js"></script>
+<script type="text/javascript" src="{{ MEDIA_URL }}/js/jqplot/jqplot.cursor.min.js"></script>
+<script type="text/javascript" src="{{ MEDIA_URL }}/js/jqplot/jqplot.highlighter.min.js"></script>
+<script type="text/javascript" src="{{ MEDIA_URL }}/js/jqplot/jqplot.dateAxisRenderer.min.js"></script>
+<script type="text/javascript" src="{{ MEDIA_URL }}/js/jqplot/jqplot.canvasTextRenderer.min.js"></script>
+<script type="text/javascript" src="{{ MEDIA_URL }}/js/jqplot/jqplot.canvasAxisLabelRenderer.min.js"></script>
 
 <script type="text/javascript">
   var baselineColor = "#d8b83f";
@@ -17,17 +17,20 @@
   
   function getConfiguration() {
     var config = new Object();
-    
-    config["executables"] = readCheckbox("input[name='executable']:checked");
-    config["baseline"] = $("#baseline").is(':checked');
-    config["benchmark"] = $("input[name='benchmark']:checked").val();
-    config["host"] = $("input[name='host']:checked").val();
-    config["revisions"] = $("#revisions option:selected").val();
+    config["executables"] = "";
+    $("input[name='executable']:checked").each(function() {
+      config["executables"] += $(this).val() + ",";
+    });
+    config["executables"] = config["executables"].slice(0, -1);
+    config["baseline"]    = $("#baseline").is(':checked');
+    config["benchmark"]   = $("input[name='benchmark']:checked").val();
+    config["host"]        = $("input[name='host']:checked").val();
+    config["revisions"]   = $("#revisions option:selected").val();
     return config;
   }
   
-  function permalinkToOverview(commitid, executableid, environment) {
-    window.location="../overview/?revision=" + commitid + "&" + "executable=" + executableid + "&host=" + environment;
+  function permalinkToOverview(commitid, executableid) {
+    window.location="{{ URL_PREFIX }}/overview/?revision=" + commitid + "&" + "executable=" + executableid;
   }
   
   function myClickHandler(ev, gridpos, datapos, neighbor, plot) {
@@ -35,16 +38,15 @@
     if (neighbor) {
       var commitid = neighbor.data[3];
       var executableid = seriesindex[neighbor.seriesIndex];
-      var environment = $("input[name='host']:checked").val();
-      permalinkToOverview(commitid, executableid, environment);
+      permalinkToOverview(commitid, executableid);
     }
   }
       
   function renderPlot(data) {
-    var plotdata = new Array();
-    var series = new Array();
+    var plotdata   = new Array();
+    var series     = new Array();
     var lastvalues = new Array();//hopefully the smallest values for determining significant digits.
-    seriesindex = new Array();
+    seriesindex    = new Array();
     for (id in data['executables']) {
       var colorid = id;
       while (colorid > seriesColors.length) { colorid -= seriesColors.length;}
@@ -85,7 +87,7 @@
         },
         xaxis:{
           renderer:$.jqplot.DateAxisRenderer,
-          label: 'Commit date',
+          label: 'Revision date',
           labelRenderer: $.jqplot.CanvasAxisLabelRenderer,
           pad: 1.01, autoscale:true,
         }
@@ -94,9 +96,9 @@
       highlighter: {
         tooltipLocation: 'nw',
         yvalues: 3,
-        formatString:'<table class="jqplot-highlighter">    <tr><td>date:</td><td>%s</td></tr> <tr><td>result:</td><td>%s</td></tr> <tr><td>std dev:</td><td>%s</td></tr> <tr><td>commit:</td><td>%s</td></tr></table>'
+        formatString:'<table class="jqplot-highlighter">  <tr><td>date:</td><td>%s</td></tr> <tr><td>result:</td><td>%s</td></tr> <tr><td>std dev:</td><td>%s</td></tr> <tr><td>commit:</td><td><a class="reposLink" href="http://pinocchio.unibe.ch/websvn/listing.php?repname=pinocchio&" onmouseover="createReposLinks()">%s</a></td></tr> </table>'
       },
-      cursor:{show:false, zoom:true, showTooltip:false, clickReset:true}
+      cursor:{zoom:true, showTooltip:false, clickReset:true}
     });
   }
   
@@ -145,7 +147,7 @@
     } else if (data["timelines"].length == 0) {
       h = parseInt($("#content").css("height"));//get height for error message
       $("#plotgrid").html(getLoadText("No data available", h, false));
-    } else if ($("input[name='benchmark']:checked").val() != "grid") {
+    } else if (data["timelines"].length == 1) {
       //render single plot when only one benchmark selected
       renderPlot(data["timelines"][0]);
       return 1;
@@ -167,12 +169,19 @@
   
   function refreshContent() {
     var h = parseInt($("#content").css("height"));//get height for loading text
-    $("#plotgrid").fadeOut("fast", function() {
-      $("#plotgrid").html(getLoadText("Loading...", h, true)).show();
-      $.getJSON("json/", getConfiguration(), render);
-    });
+      $("#plotgrid").fadeOut("fast", function() {
+        $("#plotgrid").html(getLoadText("Loading...", h, true)).show();
+        $.getJSON("json/", getConfiguration(), render);
+      });
   }
-  
+ 
+  function createReposLinks() {
+	var repos = "http://pinocchio.unibe.ch/websvn/revision.php?repname=pinocchio&rev="
+	$(".reposLink").each(function(index, el){
+		$(this).attr('href', repos+$(this).html())
+	})
+  }
+ 
   $(function() {
     $.ajaxSetup ({  
       cache: false  
@@ -191,7 +200,7 @@
     //set default selected benchmark
     $("input:radio[name='benchmark']").filter('[value={{ defaultbenchmark }}]').attr('checked', true);
     $("input[name='benchmark']").change(refreshContent);
-    $("input:radio[name='host']").filter('[value={{ defaultenvironment.name }}]').attr('checked', true);
+    $("input:radio[name=host]").filter('[value={{ defaultenvironment.name }}]').attr('checked', true);
     $("input[name='host']").change(refreshContent);
     $("#executable div.boxbody ul li").each(function() {
       var serieid = $(this).find("input").val();
@@ -202,15 +211,15 @@
     $.jqplot.eventListenerHooks.push(['jqplotClick', myClickHandler]);
     
     refreshContent();
+    createReposLinks();
   });
 </script>
 {% endblock %}
 
 {% block navigation %}
     <ul class="inline">
-      <li><a href="../overview/">Overview</a></li>
-      <li class="current"><a href="../timeline/">Timeline</a></li>
-      <li><a href="../comparison/">Comparison</a></li>
+      <li><a href="{{ URL_PREFIX }}/overview/">Overview</a></li>
+      <li class="current"><a href="{{ URL_PREFIX }}/timeline/">Timeline</a></li>
     </ul>
 {% endblock %}
 
@@ -221,13 +230,13 @@
   <div class="boxbody">
     <ul class="clearfix">{% for exec in executables|dictsort:"id" %}
       <li>
-        <input id="executable{{ exec.id }}" type="checkbox" name="executable" value="{{ exec.id }}" />
+        <input id="executable{{ exec.name }}" type="checkbox" name="executable" value="{{ exec.id }}" />
         <label for="executable{{ exec.id }}">{{ exec }}</label><div class="seriescolor"></div>
       </li>{% endfor %}
     </ul>
     {% if defaultbaseline %}
     <ul>
-      <li>Baseline:<br/>
+    <li>Baseline:<br/>
         <input id="baseline" type="checkbox" name="baseline" value="{{ baseline.executable }}" />
         <label for="baseline">{{ baseline.name }}</label><div class="seriescolor"></div>
       </li>

@@ -14,7 +14,6 @@ urlpatterns += patterns('codespeed.views',
     (r'^overview/logs/$', 'displaylogs'),
     (r'^timeline/$', 'timeline'),
     (r'^timeline/json/$', 'gettimelinedata'),
-    (r'^comparison/$', 'comparison'),
 )
 
 urlpatterns += patterns('codespeed.views',

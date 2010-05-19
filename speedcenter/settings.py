@@ -2,8 +2,10 @@
 # Django settings for a speedcenter project.
 import os
 
+URL_PREFIX = '/speedcenter/'
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
+TEMPLATE_STRING_IF_INVALID = '%s'
 
 BASEDIR = os.path.abspath( os.path.dirname(__file__).replace('\\','/') )
 
@@ -40,16 +42,17 @@ USE_I18N = False
 # Absolute path to the directory that holds media.
 # Example: "/home/media/media.lawrence.com/"
 MEDIA_ROOT = BASEDIR + "/media/"
+ADMIN_MEDIA_ROOT = MEDIA_ROOT + 'admin/'
 
 # URL that handles the media served from MEDIA_ROOT. Make sure to use a
 # trailing slash if there is a path component (optional in other cases).
 # Examples: "http://media.lawrence.com", "http://example.com/media/"
-MEDIA_URL = '/media/'
+MEDIA_URL = URL_PREFIX + 'media/'
 
 # URL prefix for admin media -- CSS, JavaScript and images. Make sure to use a
 # trailing slash.
 # Examples: "http://foo.com/media/", "/media/".
-ADMIN_MEDIA_PREFIX = '/admin_media/'
+ADMIN_MEDIA_PREFIX = URL_PREFIX + '/admin_media/'
 
 # Make this unique, and don't share it with anybody.
 SECRET_KEY = 'as%n_m#)^vee2pe91^^@c))sl7^c6t-9r8n)_69%)2yt+(la2&'
@@ -60,6 +63,13 @@ TEMPLATE_LOADERS = (
     'django.template.loaders.app_directories.load_template_source',
 #     'django.template.loaders.eggs.load_template_source',
 )
+
+TEMPLATE_CONTEXT_PROCESSORS = (
+    	'speedcenter.settings.context_processor',
+)
+
+def context_processor(request):
+	return dict(URL_PREFIX=URL_PREFIX, MEDIA_URL=MEDIA_URL)
 
 MIDDLEWARE_CLASSES = (
     'django.middleware.common.CommonMiddleware',
@@ -77,7 +87,7 @@ INSTALLED_APPS = (
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
-    #'django.contrib.sites',
+    'django.contrib.sites',
     'django.contrib.admin',
     'speedcenter.codespeed',
 )
