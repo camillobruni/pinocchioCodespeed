@@ -1,2 +1,10 @@
 {% for log in logs %}
-  <tr><td class="date">{{ log.date }}</td><td><div class="author">{{ log.author }} <strong>commited</strong> {{ log.commitid }}</div><div>{{ log.message }}</div></td></tr>{% endfor %}
+  <tr>
+	<td class="date">{{ log.date }}</td>
+  	<td>
+  		<div class="author">{{ log.author }} 
+			<strong>commited</strong> {{ log.commitid }}
+  		</div>
+  		<div>{{ log.message }}</div>
+	</td>
+</tr>{% endfor %}

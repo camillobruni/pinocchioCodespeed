@@ -11,8 +11,13 @@ urlpatterns = patterns('',
 
 if settings.DEBUG:
     urlpatterns += patterns('',
-        (r'^media/(?P<path>.*)$', 'django.views.static.serve', {'document_root': settings.MEDIA_ROOT}),
+        (r'^media/(?P<path>.*)$', 
+		'django.views.static.serve', 
+		{'document_root': settings.MEDIA_ROOT}),
+        (r'^admin_media/(?P<path>.*)$', 
+		'django.views.static.serve', 
+		{'document_root': settings.ADMIN_MEDIA_ROOT}),
     )
 urlpatterns += patterns('',
-    (r'^', include('codespeed.urls')),
+    (r'^' , include('codespeed.urls')),
 )

@@ -10,19 +10,18 @@ seconds{% endif %}</th>{% if showunits %}<th class="w">units</th>{% endif %}<th 
 </tfoot>
 <tbody>
 {% for row in table_list %}  <tr>
-        <td class="text" title="{{ row.bench_description }}">{{ row.benchmark.name }}</td><td>{{ row.result|floatformat:4 }}</td>{% if showunits %}<td>{{ row.benchmark.units }}<label style="display:none;">{{ row.benchmark.lessisbetter }}</label></td>{% endif %}<td>{{ row.std_dev|floatformat:4 }}</td><td>{{ row.change|floatformat:2 }}%</td><td>{% ifequal row.trend "-" %}-{% endifequal %}{% ifnotequal row.trend "-" %}{{ row.trend|floatformat:2 }}%{% endifnotequal %}</td><td{% if not showcomparison %} style="visibility:hidden;"{% endif %}>{{ row.relative|floatformat:2 }}</td><td class="bar"{% if not showcomparison %} style="visibility:hidden;"{% endif %}><span></span></td>
+        <td class="text" title="{{ row.bench_description }}">{{ row.benchmark.name }}</td><td>{{ row.result|floatformat:4 }}</td>{% if showunits %}<td>{{ row.benchmark.units }}<label style="display:none;">{{ row.benchmark.lessisbetter }}</label></td>{% endif %}<td>{{ row.std_dev|floatformat:4 }}</td><td>{{ row.change|floatformat:2 }}%</td><td>{% ifequal row.trend "-" %}-{% endifequal %}{% ifnotequal row.trend "-" %}{{ row.trend|floatformat:2 }}%{% endifnotequal %}</td><td{% if not base_list %} style="visibility:hidden;"{% endif %}>{{ row.relative|floatformat:2 }}</td><td class="bar"{% if not base_list %} style="visibility:hidden;"{% endif %}><span></span></td>
   </tr>{% endfor %}
 </tbody>
-</table>
-{% ifnotequal executable.project.repo_type 'N' %}
+</table>{% ifnotequal defaultproject.repo_type 'N' %}
 <table class="commits">
 <thead>
   <tr>
-    <th colspan="2"><strong>Commit logs</strong> for <span class="note">{{ lastrevision.project.repo_path }}</span></th>
+    <th colspan="2"><strong>Commit logs</strong> for {{ lastrevision.branch }} <span class="note">at {{ lastrevision.project.repo_path }}</span></th>
   </tr>
 </thead>
 <tbody id="commitid__{{ lastrevision.id }}">
-<tr><td>Loading... <img src="/media/images/ajax-loader.gif" align="bottom"></td></tr>
+<tr><td>Loading... <img src="{{ MEDIA_URL }}/images/ajax-loader.gif" align="bottom"></td></tr>
 </tbody>
 </table>
 <script type="text/javascript">
