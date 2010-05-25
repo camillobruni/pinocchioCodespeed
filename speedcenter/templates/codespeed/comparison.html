@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-{% block navigation %}
 <!--   <div id="tabs"> -->
 {% block title %}: Comparison{% endblock %}
 {% block script %}
@@ -72,9 +71,9 @@
 
 {% block navigation %}
     <ul class="inline">
-      <li><a href="/overview/">Overview</a></li>
-      <li><a href="/timeline/">Timeline</a></li>
-      <li class="current"><a href="/comparison/">Comparison</a></li>
+      <li><a href="{{URL_PREFIX}}/overview/">Overview</a></li>
+      <li><a href="{{URL_PREFIX}}/timeline/">Timeline</a></li>
+      <li class="current"><a href="{{URL_PREFIX}}/comparison/">Comparison</a></li>
     </ul>
 {% endblock %}
 
