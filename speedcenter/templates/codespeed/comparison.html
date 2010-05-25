@@ -5,22 +5,153 @@
 <!--[if IE]><script language="javascript" type="text/javascript" src="/media/js/jqplot/excanvas.min.js"></script><![endif]-->
 <link rel="stylesheet" type="text/css" href="../media/js/jqplot/jquery.jqplot.min.css" />
 <script type="text/javascript" src="../media/js/jqplot/jquery.jqplot.min.js"></script>
+<script type="text/javascript" src="../media/js/jqplot/jqplot.barRenderer.min.js"></script>
+<script type="text/javascript" src="../media/js/jqplot/jqplot.categoryAxisRenderer.min.js"></script>
+<script type="text/javascript" src="../media/js/jqplot/jqplot.canvasTextRenderer.min.js"></script>
+<script type="text/javascript" src="../media/js/jqplot/jqplot.canvasAxisTickRenderer.min.js"></script>
 
 <script type="text/javascript">
+  var compdata = new Object();
+  var plotheight = 10;  
   function getConfiguration() {
     var config = new Object();
-    config["exe"] = readCheckbox("input[name='executable']:checked");
+    config["exe"] = readCheckbox("input[name='executables']:checked");
     config["ben"] = readCheckbox("input[name='benchmarks']:checked");
-    config["env"] = readCheckbox("input[name='hosts']:checked");
+    config["env"] = readCheckbox("input[name='environments']:checked");
     config["chart"] = $("#chart_type option:selected").val();
     return config;
   }      
 
   function refreshContent() {
-    var h = parseInt($("#content").css("height"));//get height for loading text
-    $("#plot").fadeOut("fast", function() {
-      $("#plot").html(getLoadText("Loading...", h, false)).show();
+    var conf = getConfiguration();
+    
+    var plotdata = [];
+    var exes = conf['exe'].split(",");
+    var enviros = conf['env'].split(",");
+    var benchmarks  = conf['ben'].split(",");
+    h = parseInt($("#content").css("height"));//get height for error message
+    if (exes[0] == "") {
+      $("#cplot").html(getLoadText("No executables selected", h, false));
+      return false;
+    } else if (benchmarks[0] == "") {
+      $("#cplot").html(getLoadText("No benchmarks selected", h, false));
+      return false;
+    } else if (enviros[0] == "") {
+      $("#cplot").html(getLoadText("No environments selected", h, false));
+      return false;
+    }
+    var ticks = new Array();
+    for (var b in benchmarks) {
+      ticks.push($("label[for='benchmark_" + benchmarks[b] + "']").text());
+    }
+    var series = [];
+    var barcounter = 0;
+    for (var i in exes) {
+      for (var j in enviros) {
+        var exe = $("label[for='exe_" + exes[i] + "']").text();
+        var env = $("label[for='env_" + enviros[j] + "']").text();
+        series.push({'label': exe + " @ " + env});
+        var customdata = [];
+        var benchcounter = 0;
+        for (var b in benchmarks) {
+          benchcounter++;
+          barcounter++;
+          if (conf['chart'].indexOf("horizontal") == -1) {
+            customdata.push(compdata[exes[i]][enviros[j]][benchmarks[b]]);
+          } else {
+            customdata.push([compdata[exes[i]][enviros[j]][benchmarks[b]], benchcounter]);
+          }
+        }
+        plotdata.push(customdata);
+      }
+    }
+    
+    var plotoptions = new Object();
+    if (conf['chart'].indexOf("horizontal") == -1) {
+      plotoptions = {
+        seriesDefaults: {
+          renderer:$.jqplot.BarRenderer,
+          rendererOptions:{barDirection: "vertical", barPadding: 6, barMargin: 15}
+        },
+        axesDefaults: {
+          tickRenderer: $.jqplot.CanvasAxisTickRenderer
+        },
+        axes: {
+          xaxis:{
+            renderer:$.jqplot.CategoryAxisRenderer,
+            ticks: ticks,
+            tickOptions: {angle: 0}
+          },
+          yaxis:{min:0}
+        }
+      }
+    } else {
+      plotoptions = {
+        seriesDefaults: {
+          renderer:$.jqplot.BarRenderer,
+          rendererOptions:{barDirection: "horizontal", barPadding: 8, barMargin: 15}
+        },
+        axesDefaults: {
+          tickRenderer: $.jqplot.CanvasAxisTickRenderer,
+          tickOptions: {angle: 0}
+        },
+        axes: {
+          xaxis:{min:0}, 
+          yaxis:{
+            renderer:$.jqplot.CategoryAxisRenderer,
+            ticks: ticks
+          }
+        }
+      }
+    }
+    plotoptions.legend = {show: true, location: 'ne'};
+    plotoptions.series = series;
+    
+    // Determine plot width and height and its optimal style
+    // Depends on screen width and number of bars being displayed
+    var w = barcounter * (plotoptions.seriesDefaults.rendererOptions.barPadding*2 + 20) + benchcounter * plotoptions.seriesDefaults.rendererOptions.barMargin * 2;
+    var h = plotheight;
+    if (conf['chart'].indexOf("horizontal") == -1) {
+      w += 60;
+      var plotwidth = $("#content").width();
+      if (w > plotwidth + 180) {
+        plotoptions.seriesDefaults.rendererOptions.barPadding = 4;
+        plotoptions.seriesDefaults.rendererOptions.barMargin = 10;
+        plotoptions.seriesDefaults.shadow = false;
+      }
+      if (w > plotwidth + 80) {
+        plotoptions.axes.xaxis.tickOptions.angle = -30;
+      }
+      if (w > plotwidth) { w = plotwidth; }
+    } else {
+      if (w > 820) {
+        w = w/2 ;
+        plotoptions.seriesDefaults.rendererOptions.barPadding = 4;
+        plotoptions.seriesDefaults.rendererOptions.barMargin = 10;
+        plotoptions.seriesDefaults.shadow = false;
+      }
+      h = w;
+      w = "100%";
+    }
+    
+    // Render plot
+    $("#cplot").fadeOut("fast", function() {
+      $("#cplot").html("").show();
+      $("#cplot").css('width', w);
+      $("#cplot").css('height', h);
+      plot = $.jqplot('cplot', plotdata, plotoptions);
     });
+  }
+  
+  function savedata(data) {
+    if (data['error'] != "None") {
+      h = parseInt($("#content").css("height"));//get height for error message
+      $("#cplot").html(getLoadText(data["error"], h, false));
+      return 1;
+    }
+    delete data['error'];
+    compdata = data;
+    refreshContent();
   }
   
   $(function() {
@@ -36,25 +167,25 @@
     
     //set default selected executables
     {% for checkedexecutable in checkedexecutables %}
-    $("input[name='executable']").filter('[value={{ checkedexecutable }}]').attr('checked', true);
-    {% endfor %}
-    $("input[name='executable']").change(refreshContent);
+    $("input[name='executables']").filter('[value={{ checkedexecutable }}]').attr('checked', true);{% endfor %}
+    $("input[name='executables']").change(refreshContent);
+    
     //set default selected benchmarks
     {% for checkedbenchmark in checkedbenchmarks %}
-    $("input:checkbox[name='benchmarks']").filter('[value={{ checkedbenchmark.id }}]').attr('checked', true);
-    {% endfor %}
+    $("input:checkbox[name='benchmarks']").filter('[value={{ checkedbenchmark.id }}]').attr('checked', true);{% endfor %}
     $("input[name='benchmarks']").change(refreshContent);
+    
     //set default selected environments
-    {% for checkedhost in checkedhosts %}
-    $("input:checkbox[name='hosts']").filter('[value={{ checkedhost.id }}]').attr('checked', true);
-    {% endfor %}
-    $("input[name='hosts']").change(refreshContent);
+    {% for checkedenv in checkedenviros %}
+    $("input:checkbox[name='environments']").filter('[value={{ checkedenv.id }}]').attr('checked', true);{% endfor %}
+    $("input[name='environments']").change(refreshContent);
     
     // Check all and none links
     $('.checkall').click(function() {
       $(this).parent().children("li").children("input").each(function() {
         $(this).attr('checked', true);
       });
+      refreshContent();
       return false;
     });
     
@@ -62,13 +193,18 @@
       $(this).parent().children("li").children("input").each(function() {
         $(this).attr('checked', false);
       });
+      refreshContent();
       return false;
     });
-    refreshContent();
+    
+    plotheight = $("#cplot").height();
+    // Get comparison data
+    var h = parseInt($("#content").css("height"));//get height for loading text
+    $("#cplot").html(getLoadText("Loading...", h, true));
+    $.getJSON("json/", savedata);
   });
 </script>
 {% endblock %}
-
 {% block navigation %}
     <ul class="inline">
       <li><a href="{{URL_PREFIX}}/overview/">Overview</a></li>
@@ -76,50 +212,40 @@
       <li class="current"><a href="{{URL_PREFIX}}/comparison/">Comparison</a></li>
     </ul>
 {% endblock %}
-
 {% block body %}
 <div id="sidebar">
 <div id="executable" class="sidebox">
-  <div class="boxhead"><h2>Executable</h2></div>
+  <div class="boxhead"><h2>Executables</h2></div>
   <div class="boxbody">
-    <ul>{% for exe in executables %}
+    <ul><a href="#" class="checkall">All</a>, <a href="#" class="uncheckall">None</a>
+    {% for exe in executables %}
       <li title="{{ exe.revision }}">
-        <input id="executable{{ exe.key }}" type="checkbox" name="executable" value="{{ exe.key }}" />
-        <label for="executable{{ exe.key }}">{{ exe.name }}</label><div class="seriescolor"></div>
+        <input id="exe_{{ exe.key }}" type="checkbox" name="executables" value="{{ exe.key }}" />
+        <label for="exe_{{ exe.key }}">{{ exe.name }}</label><div class="seriescolor"></div>
       </li>{% endfor %}
     </ul>
-    {% if defaultbaseline %}
-    <ul>
-      <li>
-        <input id="baseline" type="checkbox" name="baseline" value="{{ baseline.executable }}" />
-        <label for="baseline">{{ baseline.name }}</label><div class="seriescolor"></div>
-      </li>
-    </ul>{% endif %}
   </div>
 </div>
 <div id="benchmark" class="sidebox">
-  <div class="boxhead"><h2>Benchmark</h2></div>
+  <div class="boxhead"><h2>Benchmarks</h2></div>
   <div class="boxbody">
   <ul><a href="#" class="checkall">All</a>, <a href="#" class="uncheckall">None</a>
     {% for bench in benchmarks|dictsort:"name" %}
     <li{% ifnotequal bench.description "" %} title="{{ bench.description }}"{% endifnotequal %}>
-      <input id="benchmark_{{ bench.name }}" type="checkbox" name="benchmarks" value="{{ bench.id }}" />
-      <label for="benchmark_{{ bench.name }}">{{ bench }}</label>
-    </li>
-    {% endfor %}
+      <input id="benchmark_{{ bench.id }}" type="checkbox" name="benchmarks" value="{{ bench.id }}" />
+      <label for="benchmark_{{ bench.id }}">{{ bench }}</label>
+    </li>{% endfor %}
   </ul>
   </div>
 </div>
 <div class="sidebox">
-  <div class="boxhead"><h2>Host</h2></div>
+  <div class="boxhead"><h2>Environments</h2></div>
   <div class="boxbody">
-    <ul>
-    {% for host in hosts %}
-      <li title="{{ host.os }}, {{ host.cpu }}">
-        <input id="host{{ host.name }}" type="checkbox" name="hosts" value="{{ host.id }}" />
-        <label for="host{{ host.name }}">{{ host }}</label>
-      </li>
-    {% endfor %}
+    <ul>{% for env in enviros %}
+      <li title="{{ env.os }}, {{ env.cpu }}">
+        <input id="env_{{ env.id }}" type="checkbox" name="environments" value="{{ env.id }}" />
+        <label for="env_{{ env.id }}">{{ env }}</label>
+      </li>{% endfor %}
     </ul>
   </div>
 </div>
@@ -131,6 +257,6 @@
   </select><a id="permalink" href="javascript:permalink();">Permalink</a>
 </div>
 <div id="content" class="clearfix">
-<div id="plot"></div>
+<div id="cplot"></div>
 </div>
 {% endblock %}

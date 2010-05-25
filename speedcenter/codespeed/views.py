@@ -86,23 +86,7 @@ def getdefaultexecutable():
     
     return default
 
-def comparison(request):
-    if request.method != 'GET': return HttpResponseNotAllowed('GET')
-    data = request.GET
-    
-    # Configuration of default parameters
-    defaultenvironment = getdefaultenvironment()
-    if not defaultenvironment:
-        return HttpResponse("You need to configure at least one Environment")
-    if 'host' in data:
-        try:
-            defaultenvironment = Environment.objects.get(name=data['host'])
-        except Environment.DoesNotExist:
-            pass
-    
-    if not len(Project.objects.all()):
-        return HttpResponse("You need to configure at least one Project as default")
-    
+def getcomparisonexes():
     executables = []
     executablekeys = []
     # add all tagged revs for any project
@@ -135,15 +119,61 @@ def comparison(request):
                     'name': name,
                 })
     
+    return executables, executablekeys
+
+def getcomparisondata(request):
+    if request.method != 'GET': return HttpResponseNotAllowed('GET')
+    data = request.GET
+    
+    executables, exekeys = getcomparisonexes()
+    
+    compdata = {}
+    compdata['error'] = "Unknown error"
+    for exe in executables:
+        compdata[exe['key']] = {}
+        for env in Environment.objects.all():
+            compdata[exe['key']][env.id] = {}
+            for bench in Benchmark.objects.all().order_by('name'):
+                try:
+                    value = Result.objects.get(
+                        environment=env,
+                        executable=exe['executable'],
+                        revision=exe['revision'],
+                        benchmark=bench
+                    ).value
+                except Result.DoesNotExist:
+                    value = 0
+                compdata[exe['key']][env.id][bench.id] = value
+    compdata['error'] = "None"
+    
+    return HttpResponse(json.dumps( compdata ))
+
+def comparison(request):
+    if request.method != 'GET': return HttpResponseNotAllowed('GET')
+    data = request.GET
+    
+    # Configuration of default parameters
+    defaultenvironment = getdefaultenvironment()
+    if not defaultenvironment:
+        return HttpResponse("You need to configure at least one Environment")
+    if 'env' in data:
+        try:
+            defaultenvironment = Environment.objects.get(name=data['env'])
+        except Environment.DoesNotExist:
+            pass
+    
+    if not len(Project.objects.all()):
+        return HttpResponse("You need to configure at least one Project as default")
+    
+    executables, exekeys = getcomparisonexes()
     checkedexecutables = []
-    k = executablekeys
     if 'exe' in data:
         for i in data['exe'].split(","):
             if not i: continue
-            if i in k:
+            if i in exekeys:
                 checkedexecutables.append(i)
     if not checkedexecutables:
-        checkedexecutables = k
+        checkedexecutables = exekeys
     
     benchmarks = Benchmark.objects.all()
     checkedbenchmarks = []
@@ -158,19 +188,19 @@ def comparison(request):
     if not checkedbenchmarks:
         checkedbenchmarks = benchmarks
     
-    hosts = Environment.objects.all()
-    checkedhosts = []
+    enviros = Environment.objects.all()
+    checkedenviros = []
     if 'env' in data:
         for i in data['env'].split(","):
             if not i: continue
             try:
-                checkedhosts.append(Environment.objects.get(id=int(i)))
+                checkedenviros.append(Environment.objects.get(id=int(i)))
             except Environment.DoesNotExist:
                 pass
-    if not checkedhosts:
-        checkedhosts = hosts
+    if not checkedenviros:
+        checkedenviros = enviros
     
-    charts = ['bars', 'stacked bars']
+    charts = ['vertical bars', 'horizontal bars']
     selectedchart = charts[0]
     if 'chart' in data and data['chart'] in charts:
         selectedchart = data['chart']
@@ -178,11 +208,11 @@ def comparison(request):
     return render_to_response('codespeed/comparison.html', {
         'checkedexecutables': checkedexecutables,
         'checkedbenchmarks': checkedbenchmarks,
-        'checkedhosts': checkedhosts,
+        'checkedenviros': checkedenviros,
         'defaultenvironment': defaultenvironment,
         'executables': executables,
         'benchmarks': benchmarks,
-        'hosts': hosts,
+        'enviros': enviros,
         'charts': charts,
         'selectedchart': selectedchart
     }, context_instance=RequestContext(request))
@@ -197,7 +227,7 @@ def gettimelinedata(request):
         timeline_list['error'] = "No executables selected"
         return HttpResponse(json.dumps( timeline_list ))
 
-    environment = Environment.objects.get(name=data['host'])
+    environment = Environment.objects.get(name=data['env'])
     benchmarks = []
     number_of_rev = data['revs']
     if data['ben'] == 'grid':
@@ -277,9 +307,9 @@ def timeline(request):
     defaultenvironment = getdefaultenvironment()
     if not defaultenvironment:
         return HttpResponse("You need to configure at least one Environment")
-    if 'host' in data:
+    if 'env' in data:
         try:
-            defaultenvironment = Environment.objects.get(name=data['host'])
+            defaultenvironment = Environment.objects.get(name=data['env'])
         except Environment.DoesNotExist:
             pass
     
@@ -324,7 +354,7 @@ def timeline(request):
     # Information for template
     executables = Executable.objects.filter(project__track=True)
     benchmarks = Benchmark.objects.all()
-    hostlist = Environment.objects.all()
+    environments = Environment.objects.all()
     return render_to_response('codespeed/timeline.html', {
         'checkedexecutables': checkedexecutables,
         'defaultbaseline': defaultbaseline,
@@ -335,14 +365,14 @@ def timeline(request):
         'defaultlast': defaultlast,
         'executables': executables,
         'benchmarks': benchmarks,
-        'hostlist': hostlist
-    }, context_instance=RequestContext(request))
+        'environments': environments
+    })
 
 def getoverviewtable(request):
     data = request.GET
     
     executable = Executable.objects.get(id=int(data['exe']))
-    environment = Environment.objects.get(name=data['host'])
+    environment = Environment.objects.get(name=data['env'])
     trendconfig = int(data['tre'])
     selectedrev = Revision.objects.get(
         commitid=data['rev'], project=executable.project
@@ -479,15 +509,6 @@ def overview(request):
     data = request.GET
 
     # Configuration of default parameters
-    defaultenvironment = getdefaultenvironment()
-    if not defaultenvironment:
-        return HttpResponse("You need to configure at least one Environment")
-    if 'host' in data:
-        try:
-            defaultenvironment = Environment.objects.get(name=data['host'])
-        except Environment.DoesNotExist:
-            pass
-    
     defaultchangethres = 3
     defaulttrendthres = 3
     defaulttrend = 10
@@ -539,8 +560,17 @@ def overview(request):
                 lastrevisions.append(selectedrevision)
         except Revision.DoesNotExist:
             selectedrevision = lastrevisions[0]
-            
-    hostlist = Environment.objects.all()
+    
+    defaultenvironment = getdefaultenvironment()
+    if not defaultenvironment:
+        return HttpResponse("You need to configure at least one Environment")
+    if 'env' in data:
+        try:
+            defaultenvironment = Environment.objects.get(name=data['env'])
+        except Environment.DoesNotExist:
+            pass
+    environments = Environment.objects.all()
+    
     projectmatrix = {}
     for e in executables: projectmatrix[e.id] = e.project.name
     projectmatrix = json.dumps(projectmatrix)
