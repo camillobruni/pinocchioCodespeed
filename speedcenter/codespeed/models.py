@@ -9,18 +9,15 @@ class Project(models.Model):
     )
     def __unicode__(self):
         return str(self.name)
-    
     name      = models.CharField(unique=True, max_length=200)
     repo_type = models.CharField("Repository type", max_length=1, choices=REPO_TYPES, default='N')
     repo_path = models.CharField("Repository path", blank=True, max_length=200)
     repo_user = models.CharField("Repository username", blank=True, max_length=100)
     repo_pass = models.CharField("Repository password", blank=True, max_length=100)
     track     = models.BooleanField("Track changes", default=False)
-
-
 class Revision(models.Model):
     def __unicode__(self):
-        return str(self.date) + " - " + self.commitid
+        return self.date.strftime("%Y-%m-%d %H:%M") + " - " + self.commitid
     
     commitid = models.CharField(max_length=42)#git and mercurial's SHA-1 length is 40
     project  = models.ForeignKey(Project)
@@ -31,7 +28,7 @@ class Revision(models.Model):
     author   = models.CharField(max_length=200, blank=True)
     
     class Meta:
-        unique_together = ("commitid", "branch", "project")
+        unique_together = ("commitid", "project")
 
 
 class Executable(models.Model):
@@ -73,6 +70,8 @@ class Environment(models.Model):
 
 
 class Result(models.Model):
+    def __unicode__(self):
+        return str(self.benchmark.name) + " " + str(self.value)
     value = models.FloatField()
     std_dev = models.FloatField(blank=True, null=True)
     val_min = models.FloatField(blank=True, null=True)

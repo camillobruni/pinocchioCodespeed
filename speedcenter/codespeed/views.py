@@ -11,7 +11,7 @@ import json
 from itertools import chain
 
 def getbaselineexecutables():
-    baseline = []
+    baseline = [{'name': "none"}]
     if hasattr(settings, 'baselinelist') and settings.baselinelist != None:
         try:
             for entry in settings.baselinelist:
@@ -34,7 +34,6 @@ def getbaselineexecutables():
                     'name': name,
                 })
         except (Executable.DoesNotExist, Revision.DoesNotExist):
-            
             # TODO: write to server logs
             pass
     else:
@@ -53,10 +52,9 @@ def getbaselineexecutables():
     if hasattr(settings, 'defaultbaseline') and settings.defaultbaseline != None:
         try:
             for base in baseline:
-                if base['executable'] == settings.defaultbaseline['executable'] \
-                   and base['revision'] == str(settings.defaultbaseline['revision']):
+                if base['executable'] == settings.defaultbaseline['executable'] and base['revision'] == str(settings.defaultbaseline['revision']):
                     baseline.remove(base)
-                    baseline.insert(0, base)
+                    baseline.insert(1, base)
                     break
         except KeyError:
             # TODO: write to server logs
@@ -88,31 +86,132 @@ def getdefaultexecutable():
     
     return default
 
+def comparison(request):
+    if request.method != 'GET': return HttpResponseNotAllowed('GET')
+    data = request.GET
+    
+    # Configuration of default parameters
+    defaultenvironment = getdefaultenvironment()
+    if not defaultenvironment:
+        return HttpResponse("You need to configure at least one Environment")
+    if 'host' in data:
+        try:
+            defaultenvironment = Environment.objects.get(name=data['host'])
+        except Environment.DoesNotExist:
+            pass
+    
+    if not len(Project.objects.all()):
+        return HttpResponse("You need to configure at least one Project as default")
+    
+    executables = []
+    executablekeys = []
+    # add all tagged revs for any project
+    revisions = Revision.objects.exclude(tag="")
+    for rev in revisions:
+        for exe in Executable.objects.filter(project=rev.project):
+            name = str(exe) + " " + rev.tag
+            key = str(exe.id) + "+" + str(rev.id)
+            executablekeys.append(key)
+            executables.append({
+                'key': key,
+                'executable': exe,
+                'revision': rev,
+                'name': name,
+            })
+    
+    # add latest revs of tracked projects
+    projects = Project.objects.filter(track=True)
+    for proj in projects:
+        rev = Revision.objects.filter(project=proj).latest('date')
+        if rev not in revisions:
+            for exe in Executable.objects.filter(project=rev.project):
+                name = str(exe) + " latest"
+                key = str(exe.id) + "+L"
+                executablekeys.append(key)
+                executables.append({
+                    'key': key,
+                    'executable': exe,
+                    'revision': rev,
+                    'name': name,
+                })
+    
+    checkedexecutables = []
+    k = executablekeys
+    if 'exe' in data:
+        for i in data['exe'].split(","):
+            if not i: continue
+            if i in k:
+                checkedexecutables.append(i)
+    if not checkedexecutables:
+        checkedexecutables = k
+    
+    benchmarks = Benchmark.objects.all()
+    checkedbenchmarks = []
+    if 'ben' in data:
+        checkedbenchmarks = []
+        for i in data['ben'].split(","):
+            if not i: continue
+            try:
+                checkedbenchmarks.append(Benchmark.objects.get(id=int(i)))
+            except Benchmark.DoesNotExist:
+                pass
+    if not checkedbenchmarks:
+        checkedbenchmarks = benchmarks
+    
+    hosts = Environment.objects.all()
+    checkedhosts = []
+    if 'env' in data:
+        for i in data['env'].split(","):
+            if not i: continue
+            try:
+                checkedhosts.append(Environment.objects.get(id=int(i)))
+            except Environment.DoesNotExist:
+                pass
+    if not checkedhosts:
+        checkedhosts = hosts
+    
+    charts = ['bars', 'stacked bars']
+    selectedchart = charts[0]
+    if 'chart' in data and data['chart'] in charts:
+        selectedchart = data['chart']
+    
+    return render_to_response('codespeed/comparison.html', {
+        'checkedexecutables': checkedexecutables,
+        'checkedbenchmarks': checkedbenchmarks,
+        'checkedhosts': checkedhosts,
+        'defaultenvironment': defaultenvironment,
+        'executables': executables,
+        'benchmarks': benchmarks,
+        'hosts': hosts,
+        'charts': charts,
+        'selectedchart': selectedchart
+    }, context_instance=RequestContext(request))
+
 def gettimelinedata(request):
     if request.method != 'GET': return HttpResponseNotAllowed('GET')
     data = request.GET
     
     timeline_list = {'error': 'None', 'timelines': []}
-    executables = data['executables'].split(",")
+    executables = data['exe'].split(",")
     if executables[0] == "":
         timeline_list['error'] = "No executables selected"
         return HttpResponse(json.dumps( timeline_list ))
 
     environment = Environment.objects.get(name=data['host'])
     benchmarks = []
-    number_of_rev = data['revisions']
-    if data['benchmark'] == 'grid':
+    number_of_rev = data['revs']
+    if data['ben'] == 'grid':
         benchmarks = Benchmark.objects.all().order_by('name')
         number_of_rev = 15
     else:
-        benchmarks.append(Benchmark.objects.get(name=data['benchmark']))
+        benchmarks.append(Benchmark.objects.get(name=data['ben']))
     
-    baseline = getbaselineexecutables()
-    if len(baseline): baseline = baseline[0]
-    else: baseline = None
     baselinerev = None
-    if data['baseline'] == "true":
-        baselinerev = baseline['revision']
+    baselineexe = None
+    if data['base'] != "+" and data['base'] != 'undefined':
+        exeid, revid = data['base'].split("+")
+        baselinerev = Revision.objects.get(id=revid)
+        baselineexe = Executable.objects.get(id=exeid)
     for bench in benchmarks:
         append = False
         timeline = {}
@@ -121,6 +220,7 @@ def gettimelinedata(request):
         lessisbetter = bench.lessisbetter and ' (less is better)' or ' (more is better)'
         timeline['lessisbetter'] = lessisbetter
         timeline['executables'] = {}
+        timeline['baseline'] = "None"
         
         for executable in executables:
             resultquery = Result.objects.filter(
@@ -140,10 +240,10 @@ def gettimelinedata(request):
                 )
             timeline['executables'][executable] = results
             append = True
-        if data['baseline'] == "true" and baseline != None and append:
+        if baselinerev != None and append:
             try:
                 baselinevalue = Result.objects.get(
-                    executable=baseline['executable'],
+                    executable=baselineexe,
                     benchmark=bench,
                     revision=baselinerev,
                     environment=environment
@@ -187,33 +287,39 @@ def timeline(request):
     if not len(defaultproject):
         return HttpResponse("You need to configure at least one Project as default")
     else: defaultproject = defaultproject[0]
+        
+    defaultbenchmark = "grid"
+    if 'ben' in data and data['ben'] != defaultbenchmark:
+        defaultbenchmark = get_object_or_404(Benchmark, name=data['ben'])
+    
+    checkedexecutables = []
+    if 'exe' in data:
+        for i in data['exe'].split(","):
+            if not i: continue
+            try:
+                checkedexecutables.append(Executable.objects.get(id=int(i)))
+            except Executable.DoesNotExist:
+                pass
+    if not checkedexecutables:
+        checkedexecutables = Executable.objects.filter(project__track=True)
     
     baseline = getbaselineexecutables()
-    
-    defaultbaseline = True
-    if 'baseline' in data and data['baseline'] == "false":
-        defaultbaseline = False
-    if len(baseline): baseline = baseline[0]
-    else: defaultbaseline = False
-    
-    defaultbenchmark = "grid"
-    if 'benchmark' in data and data['benchmark'] != defaultbenchmark:
-        defaultbenchmark = get_object_or_404(Benchmark, name=data['benchmark'])
-    
-    if 'executables' in data:
-        checkedexecutables = []
-        for i in data['executables'].split(","):
-            selected = Executable.objects.filter(id=int(i))
-            if len(selected): checkedexecutables.append(selected[0])
-    else:
-        checkedexecutables = Executable.objects.filter(project__track=True)
+    defaultbaseline = None
+    if len(baseline) > 1:
+        defaultbaseline = str(baseline[1]['executable'].id) + "+"
+        defaultbaseline += str(baseline[1]['revision'].id)
+    if "base" in data and data['base'] != "undefined":
+        try:
+            defaultbaseline = data['base']
+        except ValueError:
+            pass
     
     lastrevisions = [10, 50, 200, 1000]
     defaultlast = 200
-    if 'revisions' in data:
-        if int(data['revisions']) not in lastrevisions:
-            lastrevisions.append(data['revisions'])
-        defaultlast = data['revisions']
+    if 'revs' in data:
+        if int(data['revs']) not in lastrevisions:
+            lastrevisions.append(data['revs'])
+        defaultlast = data['revs']
     
     # Information for template
     executables = Executable.objects.filter(project__track=True)
@@ -235,11 +341,11 @@ def timeline(request):
 def getoverviewtable(request):
     data = request.GET
     
-    executable = Executable.objects.get(id=int(data['executable']))
+    executable = Executable.objects.get(id=int(data['exe']))
     environment = Environment.objects.get(name=data['host'])
-    trendconfig = int(data['trend'])
+    trendconfig = int(data['tre'])
     selectedrev = Revision.objects.get(
-        commitid=data['revision'], project=executable.project
+        commitid=data['rev'], project=executable.project
     )
     date = selectedrev.date
     lastrevisions = Revision.objects.filter(
@@ -271,17 +377,18 @@ def getoverviewtable(request):
     )
     
     base_list = None
-    baseexecutable = None
-    if "baseline" in data and data['baseline'] != "undefined":
-        base = int(data['baseline']) - 1
-        baseline = getbaselineexecutables()
-        baseexecutable = baseline[base]
+    baseline = None
+    if data['base'] != "undefined" and data['base'] != "+":
+        exeid, revid = data['base'].split("+")
+        exe = Executable.objects.get(id=exeid)
+        rev = Revision.objects.get(id=revid)
+        baseline = {'name': str(exe) + rev.tag, 'executable': exe.name}
         base_list = Result.objects.filter(
-            revision=baseline[base]['revision']
+            revision=rev
         ).filter(
             environment=environment
         ).filter(
-            executable=baseline[base]['executable']
+            executable=exe
         )
 
     table_list = []
@@ -324,7 +431,7 @@ def getoverviewtable(request):
             trend = "-"
 
         relative = 0
-        if len(base_list):
+        if base_list:
             c = base_list.filter(benchmark=bench)
             if c.count():
                 relative =  c[0].value / result
@@ -339,7 +446,7 @@ def getoverviewtable(request):
         })
     
     if not len(table_list):
-        return HttpResponse('<table id="results" class="tablesorter" style="height: 232px;"></table><p>No results for this options</p>')
+        return HttpResponse('<table id="results" class="tablesorter" style="height: 232px;"></table><p>No results for this parameters</p>')
     # Compute Arithmetic averages
     for key in totals.keys():
         if len(totals[key]):
@@ -355,8 +462,17 @@ def getoverviewtable(request):
     showunits = False
     if len(Benchmark.objects.exclude(units='seconds')): showunits = True
     
-    return render_to_response('codespeed/overview_table.html', locals(), 
-				context_instance=RequestContext(request))
+    return render_to_response('codespeed/overview_table.html', {
+        'table_list': table_list,
+        'baseline': baseline,
+        'trendconfig': trendconfig,
+        'showunits': showunits,
+        'showcomparison': base_list,
+        'executable': executable,
+        'lastrevision': lastrevision,
+        'totals': totals
+    },
+    context_instance=RequestContext(request))
     
 def overview(request):
     if request.method != 'GET': return HttpResponseNotAllowed('GET')
@@ -376,24 +492,31 @@ def overview(request):
     defaulttrendthres = 3
     defaulttrend = 10
     trends = [5, 10, 20, 50, 100]
-    if 'trend' in data and data['trend'] in trends:
-        defaulttrend = int(request.GET['trend'])
+    if 'tre' in data and int(data['tre']) in trends:
+        defaulttrend = int(data['tre'])
 
     defaultexecutable = getdefaultexecutable()
     if not defaultexecutable:
         return HttpResponse("You need to configure at least one Project as default")
     
-    if "executable" in data:
+    if "exe" in data:
         try:
-            defaultexecutable = Executable.objects.get(id=int(data['executable']))
+            defaultexecutable = Executable.objects.get(id=int(data['exe']))
         except Executable.DoesNotExist:
+            pass
+        except ValueError:
             pass
     
     baseline = getbaselineexecutables()
-    defaultbaseline = 1
-    if "baseline" in data and data['baseline'] != "undefined":
-        defaultbaseline = int(request.GET['baseline'])
-        if len(baseline) < defaultbaseline: defaultbaseline = 1
+    defaultbaseline = "+"
+    if len(baseline) > 1:
+        defaultbaseline = str(baseline[1]['executable'].id) + "+"
+        defaultbaseline += str(baseline[1]['revision'].id)
+    if "base" in data and data['base'] != "undefined":
+        try:
+            defaultbaseline = data['base']
+        except ValueError:
+            pass
     
     # Information for template
     executables = Executable.objects.filter(project__track=True)
@@ -402,11 +525,11 @@ def overview(request):
         project=defaultexecutable.project
     ).order_by('-date')[:revlimit]
     if not len(lastrevisions):
-        response = 'No data found for project "' + defaultexecutable.project + '"'
+        response = 'No data found for project "' + str(defaultexecutable.project) + '"'
         return HttpResponse(response)
     selectedrevision = lastrevisions[0]
-    if "revision" in data:
-        commitid = data['revision']
+    if "rev" in data:
+        commitid = data['rev']
         try:
             selectedrevision = Revision.objects.get(
                 commitid=commitid, project=defaultexecutable.project
@@ -545,20 +668,22 @@ def addresult(request):
     p, created = Project.objects.get_or_create(name=data["project"])
     b, created = Benchmark.objects.get_or_create(name=data["benchmark"])
     
-    branch = 'trunk'
-    if 'branch' in data and data['branch'] != "": branch = data['branch']
     rev, created = Revision.objects.get_or_create(
         commitid=data['commitid'],
         project=p,
-        branch=branch,
     )
     if created:
-   	if not 'result_date' in data:
-	    rev.date = datetime.today()
-   	else:
-            rev.date = data["result_date"]
-        saverevisioninfo(rev)
-        rev.save()        
+        if 'revision_date' in data: rev.date = data["revision_date"]
+        else:
+            try:
+                saverevisioninfo(rev)
+            except:
+                pass
+        if not rev.date:
+            temp = datetime.today()
+            rev.date = datetime(temp.year, temp.month, temp.day, temp.hour, temp.minute, temp.second)
+
+        rev.save()
     
     coptions = ""
     if 'executable_coptions' in data: coptions = data['executable_coptions']
@@ -573,7 +698,8 @@ def addresult(request):
     except Result.DoesNotExist:
         r = Result(revision=rev,executable=exe,benchmark=b,environment=e)
     r.value = data["result_value"]    
-    r.date = rev.date
+    if 'result_date' in data: r.date = data["result_date"]
+    else: r.date = rev.date
     if 'std_dev' in data: r.std_dev = data['std_dev']
     if 'min' in data: r.val_min = data['min']
     if 'max' in data: r.val_max = data['max']

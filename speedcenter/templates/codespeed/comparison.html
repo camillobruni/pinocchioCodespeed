@@ -1,10 +1,137 @@
 {% extends "base.html" %}
 {% block navigation %}
 <!--   <div id="tabs"> -->
-    <ul>
-      <li><a href="{{URL_PREFIX}}/overview/">Overview</a></li>
-      <li><a href="{{URL_PREFIX}}/timeline/">Timeline</a></li>
-      <li><a href="{{URL_PREFIX}}/comparison/" class="current">Comparison</a></li>
+{% block title %}: Comparison{% endblock %}
+{% block script %}
+<!--[if IE]><script language="javascript" type="text/javascript" src="/media/js/jqplot/excanvas.min.js"></script><![endif]-->
+<link rel="stylesheet" type="text/css" href="../media/js/jqplot/jquery.jqplot.min.css" />
+<script type="text/javascript" src="../media/js/jqplot/jquery.jqplot.min.js"></script>
+
+<script type="text/javascript">
+  function getConfiguration() {
+    var config = new Object();
+    config["exe"] = readCheckbox("input[name='executable']:checked");
+    config["ben"] = readCheckbox("input[name='benchmarks']:checked");
+    config["env"] = readCheckbox("input[name='hosts']:checked");
+    config["chart"] = $("#chart_type option:selected").val();
+    return config;
+  }      
+
+  function refreshContent() {
+    var h = parseInt($("#content").css("height"));//get height for loading text
+    $("#plot").fadeOut("fast", function() {
+      $("#plot").html(getLoadText("Loading...", h, false)).show();
+    });
+  }
+  
+  $(function() {
+    $.ajaxSetup ({  
+      cache: false  
+    });
+    
+    //set default chart type
+    $("#chart_type").val("{{ selectedchart }}");
+    $("#chart_type").change(refreshContent);
+    //reset all checkboxes
+    $("input:checkbox").removeAttr('checked');
+    
+    //set default selected executables
+    {% for checkedexecutable in checkedexecutables %}
+    $("input[name='executable']").filter('[value={{ checkedexecutable }}]').attr('checked', true);
+    {% endfor %}
+    $("input[name='executable']").change(refreshContent);
+    //set default selected benchmarks
+    {% for checkedbenchmark in checkedbenchmarks %}
+    $("input:checkbox[name='benchmarks']").filter('[value={{ checkedbenchmark.id }}]').attr('checked', true);
+    {% endfor %}
+    $("input[name='benchmarks']").change(refreshContent);
+    //set default selected environments
+    {% for checkedhost in checkedhosts %}
+    $("input:checkbox[name='hosts']").filter('[value={{ checkedhost.id }}]').attr('checked', true);
+    {% endfor %}
+    $("input[name='hosts']").change(refreshContent);
+    
+    // Check all and none links
+    $('.checkall').click(function() {
+      $(this).parent().children("li").children("input").each(function() {
+        $(this).attr('checked', true);
+      });
+      return false;
+    });
+    
+    $('.uncheckall').click(function() {
+      $(this).parent().children("li").children("input").each(function() {
+        $(this).attr('checked', false);
+      });
+      return false;
+    });
+    refreshContent();
+  });
+</script>
+{% endblock %}
+
+{% block navigation %}
+    <ul class="inline">
+      <li><a href="/overview/">Overview</a></li>
+      <li><a href="/timeline/">Timeline</a></li>
+      <li class="current"><a href="/comparison/">Comparison</a></li>
     </ul>
-<!--   </div> -->
+{% endblock %}
+
+{% block body %}
+<div id="sidebar">
+<div id="executable" class="sidebox">
+  <div class="boxhead"><h2>Executable</h2></div>
+  <div class="boxbody">
+    <ul>{% for exe in executables %}
+      <li title="{{ exe.revision }}">
+        <input id="executable{{ exe.key }}" type="checkbox" name="executable" value="{{ exe.key }}" />
+        <label for="executable{{ exe.key }}">{{ exe.name }}</label><div class="seriescolor"></div>
+      </li>{% endfor %}
+    </ul>
+    {% if defaultbaseline %}
+    <ul>
+      <li>
+        <input id="baseline" type="checkbox" name="baseline" value="{{ baseline.executable }}" />
+        <label for="baseline">{{ baseline.name }}</label><div class="seriescolor"></div>
+      </li>
+    </ul>{% endif %}
+  </div>
+</div>
+<div id="benchmark" class="sidebox">
+  <div class="boxhead"><h2>Benchmark</h2></div>
+  <div class="boxbody">
+  <ul><a href="#" class="checkall">All</a>, <a href="#" class="uncheckall">None</a>
+    {% for bench in benchmarks|dictsort:"name" %}
+    <li{% ifnotequal bench.description "" %} title="{{ bench.description }}"{% endifnotequal %}>
+      <input id="benchmark_{{ bench.name }}" type="checkbox" name="benchmarks" value="{{ bench.id }}" />
+      <label for="benchmark_{{ bench.name }}">{{ bench }}</label>
+    </li>
+    {% endfor %}
+  </ul>
+  </div>
+</div>
+<div class="sidebox">
+  <div class="boxhead"><h2>Host</h2></div>
+  <div class="boxbody">
+    <ul>
+    {% for host in hosts %}
+      <li title="{{ host.os }}, {{ host.cpu }}">
+        <input id="host{{ host.name }}" type="checkbox" name="hosts" value="{{ host.id }}" />
+        <label for="host{{ host.name }}">{{ host }}</label>
+      </li>
+    {% endfor %}
+    </ul>
+  </div>
+</div>
+</div>
+
+<div id="configbar">Choose chart type:
+  <select id="chart_type" title="">{% for chart in charts %}
+    <option value="{{ chart }}">{{ chart }}</option>{% endfor %}
+  </select><a id="permalink" href="javascript:permalink();">Permalink</a>
+</div>
+<div id="content" class="clearfix">
+<div id="plot"></div>
+</div>
 {% endblock %}

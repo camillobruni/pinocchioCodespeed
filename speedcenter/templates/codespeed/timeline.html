@@ -17,20 +17,17 @@
   
   function getConfiguration() {
     var config = new Object();
-    config["executables"] = "";
-    $("input[name='executable']:checked").each(function() {
-      config["executables"] += $(this).val() + ",";
-    });
-    config["executables"] = config["executables"].slice(0, -1);
-    config["baseline"]    = $("#baseline").is(':checked');
-    config["benchmark"]   = $("input[name='benchmark']:checked").val();
-    config["host"]        = $("input[name='host']:checked").val();
-    config["revisions"]   = $("#revisions option:selected").val();
+    
+    config["exe"] = readCheckbox("input[name='executable']:checked");
+    config["base"] = $("#baseline option:selected").val();
+    config["ben"] = $("input[name='benchmark']:checked").val();
+    config["host"] = $("input[name='host']:checked").val();
+    config["revs"] = $("#revisions option:selected").val();
     return config;
   }
   
-  function permalinkToOverview(commitid, executableid) {
-    window.location="{{ URL_PREFIX }}/overview/?revision=" + commitid + "&" + "executable=" + executableid;
+  function permalinkToOverview(commitid, executableid, environment) {
+    window.location="../overview/?rev=" + commitid + "&" + "exe=" + executableid + "&host=" + environment;
   }
   
   function myClickHandler(ev, gridpos, datapos, neighbor, plot) {
@@ -38,15 +35,16 @@
     if (neighbor) {
       var commitid = neighbor.data[3];
       var executableid = seriesindex[neighbor.seriesIndex];
-      permalinkToOverview(commitid, executableid);
+      var environment = $("input[name='host']:checked").val();
+      permalinkToOverview(commitid, executableid, environment);
     }
   }
       
   function renderPlot(data) {
-    var plotdata   = new Array();
-    var series     = new Array();
+    var plotdata = new Array();
+    var series = new Array();
     var lastvalues = new Array();//hopefully the smallest values for determining significant digits.
-    seriesindex    = new Array();
+    seriesindex = new Array();
     for (id in data['executables']) {
       var colorid = id;
       while (colorid > seriesColors.length) { colorid -= seriesColors.length;}
@@ -55,9 +53,9 @@
       plotdata.push(data['executables'][id]);
       lastvalues.push(data['executables'][id][0][1]);
     }
-    if ($("#baseline").is(':checked') && data["baseline"] != "None") {
+    if (data["baseline"] != "None") {
       series.push({
-        "label": $("label[for*='baseline']").html(), "color": baselineColor,
+        "label": $("#baseline option:selected").html(), "color": baselineColor,
         showMarker: false, 
         lineWidth: 1.5
       });
@@ -87,7 +85,7 @@
         },
         xaxis:{
           renderer:$.jqplot.DateAxisRenderer,
-          label: 'Revision date',
+          label: 'Commit date',
           labelRenderer: $.jqplot.CanvasAxisLabelRenderer,
           pad: 1.01, autoscale:true,
         }
@@ -98,7 +96,7 @@
         yvalues: 3,
         formatString:'<table class="jqplot-highlighter">  <tr><td>date:</td><td>%s</td></tr> <tr><td>result:</td><td>%s</td></tr> <tr><td>std dev:</td><td>%s</td></tr> <tr><td>commit:</td><td><a class="reposLink" href="http://pinocchio.unibe.ch/websvn/listing.php?repname=pinocchio&" onmouseover="createReposLinks()">%s</a></td></tr> </table>'
       },
-      cursor:{zoom:true, showTooltip:false, clickReset:true}
+      cursor:{show:false, zoom:true, showTooltip:false, clickReset:true}
     });
   }
   
@@ -109,9 +107,9 @@
       series.push({"label": $("label[for*='" + id + "']").html(), "color": seriesColors[id-1]});
       plotdata.push(data['executables'][id]);
     }
-    if ($("#baseline").is(':checked') && data["baseline"] != "None") {
+    if (data["baseline"] != "None") {
       series.push({
-        "label": $("label[for*='baseline']").html(), "color": baselineColor,
+        "color": baselineColor,
         showMarker: false, 
         lineWidth: 1.5
       });
@@ -147,7 +145,7 @@
     } else if (data["timelines"].length == 0) {
       h = parseInt($("#content").css("height"));//get height for error message
       $("#plotgrid").html(getLoadText("No data available", h, false));
-    } else if (data["timelines"].length == 1) {
+    } else if ($("input[name='benchmark']:checked").val() != "grid") {
       //render single plot when only one benchmark selected
       renderPlot(data["timelines"][0]);
       return 1;
@@ -191,8 +189,8 @@
     $("#revisions").change(refreshContent);
     $("input:checkbox").removeAttr('checked');
     //set default selected executables
-    {% if defaultbaseline %}$("input[name='baseline']").attr('checked', true);{% endif %}
-    $("input[name='baseline']").change(refreshContent);
+    $("#baseline").val("{{ defaultbaseline }}");
+    $("#baseline").change(refreshContent);
     {% for checkedexecutable in checkedexecutables %}
     $("input[name='executable']").filter('[value={{ checkedexecutable.id }}]').attr('checked', true);
     {% endfor %}
@@ -200,13 +198,13 @@
     //set default selected benchmark
     $("input:radio[name='benchmark']").filter('[value={{ defaultbenchmark }}]').attr('checked', true);
     $("input[name='benchmark']").change(refreshContent);
-    $("input:radio[name=host]").filter('[value={{ defaultenvironment.name }}]').attr('checked', true);
+    $("input:radio[name='host']").filter('[value={{ defaultenvironment.name }}]').attr('checked', true);
     $("input[name='host']").change(refreshContent);
     $("#executable div.boxbody ul li").each(function() {
       var serieid = $(this).find("input").val();
       $(this).find("div.seriescolor").css("background-color", seriesColors[serieid-1]);
     });
-    $("#baseline").next().next().css("background-color", baselineColor);
+    $("#baseline").next().css("background-color", baselineColor);
     
     $.jqplot.eventListenerHooks.push(['jqplotClick', myClickHandler]);
     
@@ -220,6 +218,7 @@
     <ul class="inline">
       <li><a href="{{ URL_PREFIX }}/overview/">Overview</a></li>
       <li class="current"><a href="{{ URL_PREFIX }}/timeline/">Timeline</a></li>
+      <li><a href="{{URL_PREFIX}}/comparison/">Comparison</a></li>
     </ul>
 {% endblock %}
 
@@ -230,17 +229,17 @@
   <div class="boxbody">
     <ul class="clearfix">{% for exec in executables|dictsort:"id" %}
       <li>
-        <input id="executable{{ exec.name }}" type="checkbox" name="executable" value="{{ exec.id }}" />
+        <input id="executable{{ exec.id }}" type="checkbox" name="executable" value="{{ exec.id }}" />
         <label for="executable{{ exec.id }}">{{ exec }}</label><div class="seriescolor"></div>
       </li>{% endfor %}
     </ul>
-    {% if defaultbaseline %}
     <ul>
-    <li>Baseline:<br/>
-        <input id="baseline" type="checkbox" name="baseline" value="{{ baseline.executable }}" />
-        <label for="baseline">{{ baseline.name }}</label><div class="seriescolor"></div>
+      <li title="Select baseline">Baseline:<br/>
+        <select id="baseline">
+        {% for base in baseline %}<option value="{{ base.executable.id }}+{{ base.revision.id }}">{{ base.name }}</option>{% endfor %}
+        </select><div class="seriescolor"></div>
       </li>
-    </ul>{% endif %}
+    </ul>
   </div>
 </div>
 <div id="benchmark" class="sidebox">

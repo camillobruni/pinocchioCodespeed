@@ -12,16 +12,16 @@
   
   function getConfiguration() {
     var config = new Object();
-    config["trend"] = $("#trend option:selected").val();
-    config["baseline"] = $("#baseline option:selected").val();
-    config["revision"] = $("#revision option:selected").val();
-    config["executable"] = $("input[name='executable']:checked").val();
+    config["tre"] = $("#trend option:selected").val();
+    config["base"] = $("#baseline option:selected").val();
+    config["rev"] = $("#revision option:selected").val();
+    config["exe"] = $("input[name='executable']:checked").val();
     config["host"] = $("input[name='host']:checked").val();
     return config;
   }
   
-  function permalinkToTimeline(benchmark) {
-    window.location="/timeline/?benchmark=" + benchmark;
+  function permalinkToTimeline(benchmark, environment) {
+    window.location="/{{URL_PREFIX}}timeline/?ben=" + benchmark + "&host=" + environment;
   }
 
   function colorTable(length, index) {
@@ -55,7 +55,8 @@
       }
       //Link rows to timelines
       $(this).click(function () {
-        permalinkToTimeline($(this).children("td:eq(0)").text());
+        var environment = $("input[name='host']:checked").val();
+        permalinkToTimeline($(this).children("td:eq(0)").text(), environment);
       });
     });
     //Configure table as tablesorter
@@ -85,6 +86,8 @@
   }
   
   function changerevisions() {
+    // This function repopulates the revision selectbox everytime a new
+    // executable is selected that corresponds to a different project.
     var executable = $("input[name='executable']:checked").val();
     if (projectmatrix[executable] != currentproject) {
       $("#revision").html(revisionboxes[projectmatrix[executable]]);
@@ -107,12 +110,13 @@
     $("#trend").change(refreshContent);
     $("#baseline").val("{{ defaultbaseline }}");
     $("#baseline").change(refreshContent);
+    //repopulate revision select box if the project has changed
     $("#revision").html(revisionboxes['{{ defaultexecutable.project.name }}']);
     $("#revision").val("{{ selectedrevision.commitid }}");
     $("#revision").change(refreshContent);
     $("input:radio[name=executable]").filter('[value="{{ defaultexecutable.id }}"]').attr('checked', true);
     $("input[name='executable']").change(changerevisions);
-    $("input:radio[name=host]").filter('[value="{{ defaultenvironment.name }}"]').attr('checked', true);
+    $("input:radio[name='host']").filter('[value="{{ defaultenvironment.name }}"]').attr('checked', true);
     $("input[name='host']").change(refreshContent);
     refreshContent();
   });
@@ -123,6 +127,7 @@
     <ul class="inline">
       <li class="current"><a href="{{URL_PREFIX}}/overview/">Overview</a></li>
       <li><a href="{{URL_PREFIX}}/timeline/">Timeline</a></li>
+      <li><a href="{{URL_PREFIX}}/comparison/">Comparison</a></li>
     </ul>
 {% endblock %}
 
@@ -152,7 +157,7 @@
     </li>
     <li title="Select executable for comparison">Compare to:<br/>
       <select id="baseline">
-      {% for base in baseline %}<option value="{{ forloop.counter }}">{{ base.name }}</option>{% endfor %}
+      {% for base in baseline %}<option value="{{ base.executable.id }}+{{ base.revision.id }}">{{ base.name }}</option>{% endfor %}
       </select>
     </li>
   </ul>
