@@ -107,7 +107,7 @@ def getcomparisonexes():
     projects = Project.objects.filter(track=True)
     for proj in projects:
         rev = Revision.objects.filter(project=proj).latest('date')
-        if rev not in revisions:
+        if rev.tag == "":
             for exe in Executable.objects.filter(project=rev.project):
                 name = str(exe) + " latest"
                 key = str(exe.id) + "+L"
@@ -175,7 +175,14 @@ def comparison(request):
     if not checkedexecutables:
         checkedexecutables = exekeys
     
-    benchmarks = Benchmark.objects.all()
+    units = Benchmark.objects.values('units').distinct()
+    units = [unit['units'] for unit in units]
+    benchmarks = {}
+    bench_units = {}
+    for unit in units:
+        benchmarks[unit] = Benchmark.objects.filter(units=unit)
+        lessisbetter = benchmarks[unit][0].lessisbetter and ' (less is better)' or ' (more is better)'
+        bench_units[unit] = [[b.id for b in benchmarks[unit]], lessisbetter]
     checkedbenchmarks = []
     if 'ben' in data:
         checkedbenchmarks = []
@@ -186,7 +193,7 @@ def comparison(request):
             except Benchmark.DoesNotExist:
                 pass
     if not checkedbenchmarks:
-        checkedbenchmarks = benchmarks
+        checkedbenchmarks = Benchmark.objects.all()
     
     enviros = Environment.objects.all()
     checkedenviros = []
@@ -200,10 +207,21 @@ def comparison(request):
     if not checkedenviros:
         checkedenviros = enviros
     
-    charts = ['vertical bars', 'horizontal bars']
+    charts = ['normal bars', 'stacked bars', 'relative bars']
     selectedchart = charts[0]
     if 'chart' in data and data['chart'] in charts:
         selectedchart = data['chart']
+    
+    selectedbaseline = getbaselineexecutables()
+    if 'bas' in data:
+        selectedbaseline = data['bas']
+    elif len(selectedbaseline) > 1:
+        selectedbaseline = str(selectedbaseline[1]['executable'].id) + "+" + str(selectedbaseline[1]['revision'].id)
+    else:
+        selectedbaseline = executables[0]['key']
+    
+    selecteddirection = False
+    if 'hor' in data and data['hor'] == "true": selecteddirection = True
     
     return render_to_response('codespeed/comparison.html', {
         'checkedexecutables': checkedexecutables,
@@ -212,9 +230,12 @@ def comparison(request):
         'defaultenvironment': defaultenvironment,
         'executables': executables,
         'benchmarks': benchmarks,
+        'bench_units': json.dumps(bench_units),
         'enviros': enviros,
         'charts': charts,
-        'selectedchart': selectedchart
+        'selectedbaseline': selectedbaseline,
+        'selectedchart': selectedchart,
+        'selecteddirection': selecteddirection
     }, context_instance=RequestContext(request))
 
 def gettimelinedata(request):
@@ -368,7 +389,7 @@ def timeline(request):
         'environments': environments
     })
 
-def getoverviewtable(request):
+def getchangestable(request):
     data = request.GET
     
     executable = Executable.objects.get(id=int(data['exe']))
@@ -492,7 +513,7 @@ def getoverviewtable(request):
     showunits = False
     if len(Benchmark.objects.exclude(units='seconds')): showunits = True
     
-    return render_to_response('codespeed/overview_table.html', {
+    return render_to_response('codespeed/changes_table.html', {
         'table_list': table_list,
         'baseline': baseline,
         'trendconfig': trendconfig,
@@ -504,7 +525,7 @@ def getoverviewtable(request):
     },
     context_instance=RequestContext(request))
     
-def overview(request):
+def changes(request):
     if request.method != 'GET': return HttpResponseNotAllowed('GET')
     data = request.GET
 
@@ -586,8 +607,7 @@ def overview(request):
         revisionboxes[p.name] = Revision.objects.filter(
             project=p
         ).order_by('-date')[:revlimit]
-    return render_to_response('codespeed/overview.html', locals(),
-			context_instance=RequestContext(request))
+    return render_to_response('codespeed/changes.html', locals())
 
 def displaylogs(request):
     rev = Revision.objects.get(id=request.GET['revisionid'])
@@ -595,7 +615,7 @@ def displaylogs(request):
     logs.append(rev)
     remotelogs = getcommitlogs(rev)
     if len(remotelogs): logs = remotelogs
-    return render_to_response('codespeed/overview_logs.html', { 'logs': logs },
+    return render_to_response('codespeed/changes_logs.html', { 'logs': logs }, 
 			context_instance=RequestContext(request))
 
 def getlogsfromsvn(newrev, startrev):

@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-<!--   <div id="tabs"> -->
 {% block title %}: Comparison{% endblock %}
 {% block script %}
 <!--[if IE]><script language="javascript" type="text/javascript" src="/media/js/jqplot/excanvas.min.js"></script><![endif]-->
@@ -9,137 +8,62 @@
 <script type="text/javascript" src="../media/js/jqplot/jqplot.categoryAxisRenderer.min.js"></script>
 <script type="text/javascript" src="../media/js/jqplot/jqplot.canvasTextRenderer.min.js"></script>
 <script type="text/javascript" src="../media/js/jqplot/jqplot.canvasAxisTickRenderer.min.js"></script>
+<script type="text/javascript" src="../media/js/jqplot/jqplot.canvasAxisLabelRenderer.min.js"></script>
 
 <script type="text/javascript">
   var compdata = new Object();
-  var plotheight = 10;  
+  var bench_units = eval({{ bench_units|safe }});
+  var plotheight = 10;
+  
   function getConfiguration() {
     var config = new Object();
     config["exe"] = readCheckbox("input[name='executables']:checked");
     config["ben"] = readCheckbox("input[name='benchmarks']:checked");
     config["env"] = readCheckbox("input[name='environments']:checked");
+    config["hor"] = $("input[name='direction']").is(':checked');
+    config["bas"] = $("#baseline option:selected").val();
     config["chart"] = $("#chart_type option:selected").val();
     return config;
-  }      
-
+  }
+  
   function refreshContent() {
     var conf = getConfiguration();
-    
-    var plotdata = [];
     var exes = conf['exe'].split(",");
+    var bens  = conf['ben'].split(",");
     var enviros = conf['env'].split(",");
-    var benchmarks  = conf['ben'].split(",");
-    h = parseInt($("#content").css("height"));//get height for error message
+    
+    h = parseInt($("#plotwrapper").css("height"));//get height for error message
     if (exes[0] == "") {
-      $("#cplot").html(getLoadText("No executables selected", h, false));
+      $("#plotwrapper").html(getLoadText("No executables selected", h, false));
       return false;
-    } else if (benchmarks[0] == "") {
-      $("#cplot").html(getLoadText("No benchmarks selected", h, false));
+    } else if (bens[0] == "") {
+      $("#plotwrapper").html(getLoadText("No benchmarks selected", h, false));
       return false;
     } else if (enviros[0] == "") {
-      $("#cplot").html(getLoadText("No environments selected", h, false));
+      $("#plotwrapper").html(getLoadText("No environments selected", h, false));
+      return false;
+    } else if (conf['chart'] == "relative bars" &&  conf['bas'] == "none") {
+      $("#plotwrapper").html(getLoadText("For relative bar charts, you must select a baseline to normalize to.", h, false));
       return false;
     }
-    var ticks = new Array();
-    for (var b in benchmarks) {
-      ticks.push($("label[for='benchmark_" + benchmarks[b] + "']").text());
-    }
-    var series = [];
-    var barcounter = 0;
-    for (var i in exes) {
-      for (var j in enviros) {
-        var exe = $("label[for='exe_" + exes[i] + "']").text();
-        var env = $("label[for='env_" + enviros[j] + "']").text();
-        series.push({'label': exe + " @ " + env});
-        var customdata = [];
-        var benchcounter = 0;
-        for (var b in benchmarks) {
-          benchcounter++;
-          barcounter++;
-          if (conf['chart'].indexOf("horizontal") == -1) {
-            customdata.push(compdata[exes[i]][enviros[j]][benchmarks[b]]);
-          } else {
-            customdata.push([compdata[exes[i]][enviros[j]][benchmarks[b]], benchcounter]);
+    
+    $("#plotwrapper").fadeOut("fast", function() {
+      $(this).html("").show();
+      var plotcounter = 1;
+      for (unit in bench_units) {
+        var benchmarks = new Array();
+        for (ben in bens) {
+          if ($.inArray(parseInt(bens[ben]), bench_units[unit][0]) != -1) {
+            benchmarks.push(bens[ben]);
           }
         }
-        plotdata.push(customdata);
+        if (benchmarks.length == 0) { continue; }
+        
+        var plotid = "plot" + plotcounter;
+        $("#plotwrapper").append('<div id="' + plotid + '" class="compplot"></div>');
+        plotcounter++;
+        renderComparisonPlot(plotid, benchmarks, exes, enviros, conf['bas'], conf['chart'], conf['hor']);
       }
-    }
-    
-    var plotoptions = new Object();
-    if (conf['chart'].indexOf("horizontal") == -1) {
-      plotoptions = {
-        seriesDefaults: {
-          renderer:$.jqplot.BarRenderer,
-          rendererOptions:{barDirection: "vertical", barPadding: 6, barMargin: 15}
-        },
-        axesDefaults: {
-          tickRenderer: $.jqplot.CanvasAxisTickRenderer
-        },
-        axes: {
-          xaxis:{
-            renderer:$.jqplot.CategoryAxisRenderer,
-            ticks: ticks,
-            tickOptions: {angle: 0}
-          },
-          yaxis:{min:0}
-        }
-      }
-    } else {
-      plotoptions = {
-        seriesDefaults: {
-          renderer:$.jqplot.BarRenderer,
-          rendererOptions:{barDirection: "horizontal", barPadding: 8, barMargin: 15}
-        },
-        axesDefaults: {
-          tickRenderer: $.jqplot.CanvasAxisTickRenderer,
-          tickOptions: {angle: 0}
-        },
-        axes: {
-          xaxis:{min:0}, 
-          yaxis:{
-            renderer:$.jqplot.CategoryAxisRenderer,
-            ticks: ticks
-          }
-        }
-      }
-    }
-    plotoptions.legend = {show: true, location: 'ne'};
-    plotoptions.series = series;
-    
-    // Determine plot width and height and its optimal style
-    // Depends on screen width and number of bars being displayed
-    var w = barcounter * (plotoptions.seriesDefaults.rendererOptions.barPadding*2 + 20) + benchcounter * plotoptions.seriesDefaults.rendererOptions.barMargin * 2;
-    var h = plotheight;
-    if (conf['chart'].indexOf("horizontal") == -1) {
-      w += 60;
-      var plotwidth = $("#content").width();
-      if (w > plotwidth + 180) {
-        plotoptions.seriesDefaults.rendererOptions.barPadding = 4;
-        plotoptions.seriesDefaults.rendererOptions.barMargin = 10;
-        plotoptions.seriesDefaults.shadow = false;
-      }
-      if (w > plotwidth + 80) {
-        plotoptions.axes.xaxis.tickOptions.angle = -30;
-      }
-      if (w > plotwidth) { w = plotwidth; }
-    } else {
-      if (w > 820) {
-        w = w/2 ;
-        plotoptions.seriesDefaults.rendererOptions.barPadding = 4;
-        plotoptions.seriesDefaults.rendererOptions.barMargin = 10;
-        plotoptions.seriesDefaults.shadow = false;
-      }
-      h = w;
-      w = "100%";
-    }
-    
-    // Render plot
-    $("#cplot").fadeOut("fast", function() {
-      $("#cplot").html("").show();
-      $("#cplot").css('width', w);
-      $("#cplot").css('height', h);
-      plot = $.jqplot('cplot', plotdata, plotoptions);
     });
   }
   
@@ -158,12 +82,19 @@
     $.ajaxSetup ({  
       cache: false  
     });
-    
+
+    //reset all checkboxes
+    $("input:checkbox").removeAttr('checked');
+
     //set default chart type
     $("#chart_type").val("{{ selectedchart }}");
     $("#chart_type").change(refreshContent);
-    //reset all checkboxes
-    $("input:checkbox").removeAttr('checked');
+    
+    $("#baseline").val("{{ selectedbaseline }}");
+    $("#baseline").change(refreshContent);
+    
+    {% if selecteddirection %}$("input[name=direction]").attr('checked', true);{% endif %}
+    $("#direction").change(refreshContent);
     
     //set default selected executables
     {% for checkedexecutable in checkedexecutables %}
@@ -207,7 +138,7 @@
 {% endblock %}
 {% block navigation %}
     <ul class="inline">
-      <li><a href="{{URL_PREFIX}}/overview/">Overview</a></li>
+      <li><a href="{{URL_PREFIX}}/changes/">Changes</a></li>
       <li><a href="{{URL_PREFIX}}/timeline/">Timeline</a></li>
       <li class="current"><a href="{{URL_PREFIX}}/comparison/">Comparison</a></li>
     </ul>
@@ -219,9 +150,9 @@
   <div class="boxbody">
     <ul><a href="#" class="checkall">All</a>, <a href="#" class="uncheckall">None</a>
     {% for exe in executables %}
-      <li title="{{ exe.revision }}">
+      <li title="{{ exe.executable }} {{ exe.revision }}">
         <input id="exe_{{ exe.key }}" type="checkbox" name="executables" value="{{ exe.key }}" />
-        <label for="exe_{{ exe.key }}">{{ exe.name }}</label><div class="seriescolor"></div>
+        <label for="exe_{{ exe.key }}">{{ exe.name|truncatewords:2 }}</label><div class="seriescolor"></div>
       </li>{% endfor %}
     </ul>
   </div>
@@ -229,13 +160,14 @@
 <div id="benchmark" class="sidebox">
   <div class="boxhead"><h2>Benchmarks</h2></div>
   <div class="boxbody">
-  <ul><a href="#" class="checkall">All</a>, <a href="#" class="uncheckall">None</a>
-    {% for bench in benchmarks|dictsort:"name" %}
-    <li{% ifnotequal bench.description "" %} title="{{ bench.description }}"{% endifnotequal %}>
+  {% for key,benchlist in benchmarks.items %}
+  <ul>{{ key }} (<a href="#" class="checkall">All</a>, <a href="#" class="uncheckall">None</a>)
+    {% for bench in benchlist|dictsort:"name" %}
+    <li title="{{ bench.description }}">
       <input id="benchmark_{{ bench.id }}" type="checkbox" name="benchmarks" value="{{ bench.id }}" />
       <label for="benchmark_{{ bench.id }}">{{ bench }}</label>
     </li>{% endfor %}
-  </ul>
+  </ul>{% endfor %}
   </div>
 </div>
 <div class="sidebox">
@@ -251,12 +183,21 @@
 </div>
 </div>
 
-<div id="configbar">Choose chart type:
-  <select id="chart_type" title="">{% for chart in charts %}
+<div id="configbar">Chart type:
+  <select id="chart_type" title="Select chart type">{% for chart in charts %}
     <option value="{{ chart }}">{{ chart }}</option>{% endfor %}
-  </select><a id="permalink" href="javascript:permalink();">Permalink</a>
+  </select>
+  <span class="options">Normalization:
+  <select id="baseline" title="Select baseline for normalization">
+    <option value="none">None</option>{% for exe in executables %}
+    <option value="{{ exe.key }}">{{ exe.name }}</option>{% endfor %}
+  </select>
+  <input id="direction" type="checkbox" name="direction" value="horizontal"/>
+  <label for="direction">horizontal</label>
+  </span>
+  <a id="permalink" href="javascript:permalink();">Permalink</a>
 </div>
 <div id="content" class="clearfix">
-<div id="cplot"></div>
+<div id="plotwrapper"></div>
 </div>
 {% endblock %}

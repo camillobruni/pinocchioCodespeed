@@ -1,10 +1,6 @@
 # -*- coding: utf-8 -*-
 ## Define some default options here ##
-defaultexecutable = 6 # Executable that should be chosen as default in the overview
-                         # Given as the id of the executable.
-                         # Example: defaultexecutable = 1
-
-defaultexecutable = None # Executable that should be chosen as default in the overview
+defaultexecutable = None # Executable that should be chosen as default in the changes view
                          # Given as the id of the executable.
                          # Example: defaultexecutable = 1
 

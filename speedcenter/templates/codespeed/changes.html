@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}: Overview{% endblock %}
+{% block title %}: Changes{% endblock %}
 {% block script %}
 <script type="text/javascript" src="{{ MEDIA_URL }}js/jquery.tablesorter.min.js"></script>
 <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jqueryui/1/jquery-ui.min.js"></script>
@@ -125,7 +125,7 @@
 
 {% block navigation %}
     <ul class="inline">
-      <li class="current"><a href="{{URL_PREFIX}}/overview/">Overview</a></li>
+      <li class="current"><a href="{{URL_PREFIX}}/changes/">Changes</a></li>
       <li><a href="{{URL_PREFIX}}/timeline/">Timeline</a></li>
       <li><a href="{{URL_PREFIX}}/comparison/">Comparison</a></li>
     </ul>
@@ -146,6 +146,19 @@
     </ul>
   </div>
 </div>
+<div class="sidebox">
+  <div class="boxhead"><h2>Environment</h2></div>
+  <div class="boxbody">
+    <ul>
+    {% for env in environments %}
+      <li title="{{ env.os }}, {{ env.cpu }}">
+        <input id="env{{ env.name }}" type="radio" name="environment" value="{{ env.name }}" />
+        <label for="env{{ env.name }}">{{ env }}</label>
+      </li>
+    {% endfor %}
+    </ul>
+  </div>
+</div>
 <div id="options" class="sidebox">
   <div class="boxhead"><h2>Options</h2></div>
   <div class="boxbody">
@@ -161,19 +174,6 @@
       </select>
     </li>
   </ul>
-  </div>
-</div>
-<div class="sidebox">
-  <div class="boxhead"><h2>Environment</h2></div>
-  <div class="boxbody">
-    <ul>
-    {% for env in environments %}
-      <li title="{{ env.os }}, {{ env.cpu }}">
-        <input id="env{{ env.name }}" type="radio" name="environment" value="{{ env.name }}" />
-        <label for="env{{ env.name }}">{{ env }}</label>
-      </li>
-    {% endfor %}
-    </ul>
   </div>
 </div>
 
