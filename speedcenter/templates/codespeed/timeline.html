@@ -27,7 +27,7 @@
   }
   
   function permalinkToOverview(commitid, executableid, environment) {
-    window.location="../changes/?rev=" + commitid + "&" + "exe=" + executableid + "&env=" + environment;
+    indow.location="{{URL_PREFIX}}/changes/?rev=" + commitid + "&" + "exe=" + executableid + "&env=" + environment;
   }
   
   function myClickHandler(ev, gridpos, datapos, neighbor, plot) {
@@ -150,7 +150,7 @@
   }
   
   function render(data) {
-    $("#revisions").attr("disabled", false);
+      $("#revisions").attr("disabled", false);
     $("#plotgrid").html("");
     if(data["error"] != "None") {
       h = parseInt($("#content").css("height"));//get height for error message

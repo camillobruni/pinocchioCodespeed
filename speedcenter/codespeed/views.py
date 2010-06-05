@@ -387,7 +387,8 @@ def timeline(request):
         'executables': executables,
         'benchmarks': benchmarks,
         'environments': environments
-    })
+    },
+    context_instance=RequestContext(request))
 
 def getchangestable(request):
     data = request.GET
