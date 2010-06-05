@@ -6,71 +6,103 @@
 <script type="text/javascript" src="../media/js/jqplot/jquery.jqplot.min.js"></script>
 <script type="text/javascript" src="../media/js/jqplot/jqplot.barRenderer.min.js"></script>
 <script type="text/javascript" src="../media/js/jqplot/jqplot.categoryAxisRenderer.min.js"></script>
-<script type="text/javascript" src="../media/js/jqplot/jqplot.canvasTextRenderer.min.js"></script>
-<script type="text/javascript" src="../media/js/jqplot/jqplot.canvasAxisTickRenderer.min.js"></script>
-<script type="text/javascript" src="../media/js/jqplot/jqplot.canvasAxisLabelRenderer.min.js"></script>
 
 <script type="text/javascript">
   var compdata = new Object();
-  var bench_units = eval({{ bench_units|safe }});
-  var plotheight = 10;
   
   function getConfiguration() {
     var config = new Object();
     config["exe"] = readCheckbox("input[name='executables']:checked");
     config["ben"] = readCheckbox("input[name='benchmarks']:checked");
     config["env"] = readCheckbox("input[name='environments']:checked");
-    config["hor"] = $("input[name='direction']").is(':checked');
-    config["bas"] = $("#baseline option:selected").val();
     config["chart"] = $("#chart_type option:selected").val();
     return config;
   }
   
   function refreshContent() {
     var conf = getConfiguration();
-    var exes = conf['exe'].split(",");
-    var bens  = conf['ben'].split(",");
-    var enviros = conf['env'].split(",");
     
-    h = parseInt($("#plotwrapper").css("height"));//get height for error message
+    var plotdata = [];
+    var exes = conf['exe'].split(",");
+    var enviros = conf['env'].split(",");
+    var benchmarks  = conf['ben'].split(",");
+    h = parseInt($("#content").css("height"));//get height for error message
     if (exes[0] == "") {
-      $("#plotwrapper").html(getLoadText("No executables selected", h, false));
+      $("#plot").html(getLoadText("No executables selected", h, false));
       return false;
-    } else if (bens[0] == "") {
-      $("#plotwrapper").html(getLoadText("No benchmarks selected", h, false));
+    } else if (benchmarks[0] == "") {
+      $("#plot").html(getLoadText("No benchmarks selected", h, false));
       return false;
     } else if (enviros[0] == "") {
-      $("#plotwrapper").html(getLoadText("No environments selected", h, false));
-      return false;
-    } else if (conf['chart'] == "relative bars" &&  conf['bas'] == "none") {
-      $("#plotwrapper").html(getLoadText("For relative bar charts, you must select a baseline to normalize to.", h, false));
+      $("#plot").html(getLoadText("No environments selected", h, false));
       return false;
     }
-    
-    $("#plotwrapper").fadeOut("fast", function() {
-      $(this).html("").show();
-      var plotcounter = 1;
-      for (unit in bench_units) {
-        var benchmarks = new Array();
-        for (ben in bens) {
-          if ($.inArray(parseInt(bens[ben]), bench_units[unit][0]) != -1) {
-            benchmarks.push(bens[ben]);
+    var ticks = new Array();
+    for (var b in benchmarks) {
+      ticks.push($("label[for='benchmark_" + benchmarks[b] + "']").text());
+    }
+    var series = [];
+    for (var i in exes) {
+      for (var j in enviros) {
+        var exe = $("label[for='exe_" + exes[i] + "']").text();
+        var env = $("label[for='env_" + enviros[j] + "']").text();
+        series.push({'label': exe + " @ " + env});
+        var customdata = [];
+        var bcounter = 0;
+        for (var b in benchmarks) {
+          bcounter++;
+          if (conf['chart'].indexOf("horizontal") == -1) {
+            customdata.push(compdata[exes[i]][enviros[j]][benchmarks[b]]);
+          } else {
+            customdata.push([compdata[exes[i]][enviros[j]][benchmarks[b]], bcounter]);
           }
         }
-        if (benchmarks.length == 0) { continue; }
-        
-        var plotid = "plot" + plotcounter;
-        $("#plotwrapper").append('<div id="' + plotid + '" class="compplot"></div>');
-        plotcounter++;
-        renderComparisonPlot(plotid, benchmarks, exes, enviros, conf['bas'], conf['chart'], conf['hor']);
+        plotdata.push(customdata);
       }
+    }
+
+    var plotoptions = new Object();
+    if (conf['chart'].indexOf("horizontal") == -1) {
+      plotoptions = {
+        seriesDefaults: {
+          renderer:$.jqplot.BarRenderer,
+          rendererOptions:{barDirection: "vertical", barPadding: 5, barMargin: 10}
+        },
+        axes: {
+          xaxis:{
+            renderer:$.jqplot.CategoryAxisRenderer,
+            ticks: ticks
+          },
+          yaxis:{min:0}
+        }
+      }
+    } else {
+      plotoptions = {
+        seriesDefaults: {
+          renderer:$.jqplot.BarRenderer,
+          rendererOptions:{barDirection: "horizontal", barPadding: 5, barMargin: 10}
+        },
+        axes: {
+          xaxis:{min:0}, 
+          yaxis:{
+            renderer:$.jqplot.CategoryAxisRenderer,
+            ticks: ticks
+          }
+        }
+      }
+    }
+    plotoptions.legend = {show: true, location: 'ne'};
+    plotoptions.series = series;
+    $("#plot").fadeOut("fast", function() {
+      $("#plot").html("").show();
+      plot = $.jqplot('plot', plotdata, plotoptions);
     });
   }
   
   function savedata(data) {
     if (data['error'] != "None") {
       h = parseInt($("#content").css("height"));//get height for error message
-      $("#cplot").html(getLoadText(data["error"], h, false));
+      $("#plot").html(getLoadText(data["error"], h, false));
       return 1;
     }
     delete data['error'];
@@ -128,10 +160,9 @@
       return false;
     });
     
-    plotheight = $("#cplot").height();
     // Get comparison data
     var h = parseInt($("#content").css("height"));//get height for loading text
-    $("#cplot").html(getLoadText("Loading...", h, true));
+    $("#plot").html(getLoadText("Loading...", h, true));
     $.getJSON("json/", savedata);
   });
 </script>
@@ -150,9 +181,9 @@
   <div class="boxbody">
     <ul><a href="#" class="checkall">All</a>, <a href="#" class="uncheckall">None</a>
     {% for exe in executables %}
-      <li title="{{ exe.executable }} {{ exe.revision }}">
+      <li title="{{ exe.revision }}">
         <input id="exe_{{ exe.key }}" type="checkbox" name="executables" value="{{ exe.key }}" />
-        <label for="exe_{{ exe.key }}">{{ exe.name|truncatewords:2 }}</label><div class="seriescolor"></div>
+        <label for="exe_{{ exe.key }}">{{ exe.name }}</label><div class="seriescolor"></div>
       </li>{% endfor %}
     </ul>
   </div>
@@ -160,14 +191,13 @@
 <div id="benchmark" class="sidebox">
   <div class="boxhead"><h2>Benchmarks</h2></div>
   <div class="boxbody">
-  {% for key,benchlist in benchmarks.items %}
-  <ul>{{ key }} (<a href="#" class="checkall">All</a>, <a href="#" class="uncheckall">None</a>)
-    {% for bench in benchlist|dictsort:"name" %}
-    <li title="{{ bench.description }}">
+  <ul><a href="#" class="checkall">All</a>, <a href="#" class="uncheckall">None</a>
+    {% for bench in benchmarks|dictsort:"name" %}
+    <li{% ifnotequal bench.description "" %} title="{{ bench.description }}"{% endifnotequal %}>
       <input id="benchmark_{{ bench.id }}" type="checkbox" name="benchmarks" value="{{ bench.id }}" />
       <label for="benchmark_{{ bench.id }}">{{ bench }}</label>
     </li>{% endfor %}
-  </ul>{% endfor %}
+  </ul>
   </div>
 </div>
 <div class="sidebox">

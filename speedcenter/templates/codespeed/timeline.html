@@ -27,7 +27,7 @@
   }
   
   function permalinkToOverview(commitid, executableid, environment) {
-    indow.location="{{URL_PREFIX}}/changes/?rev=" + commitid + "&" + "exe=" + executableid + "&env=" + environment;
+    window.location="../overview/?rev=" + commitid + "&" + "exe=" + executableid + "&env=" + environment;
   }
   
   function myClickHandler(ev, gridpos, datapos, neighbor, plot) {

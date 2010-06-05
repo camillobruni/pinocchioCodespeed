@@ -175,14 +175,7 @@ def comparison(request):
     if not checkedexecutables:
         checkedexecutables = exekeys
     
-    units = Benchmark.objects.values('units').distinct()
-    units = [unit['units'] for unit in units]
-    benchmarks = {}
-    bench_units = {}
-    for unit in units:
-        benchmarks[unit] = Benchmark.objects.filter(units=unit)
-        lessisbetter = benchmarks[unit][0].lessisbetter and ' (less is better)' or ' (more is better)'
-        bench_units[unit] = [[b.id for b in benchmarks[unit]], lessisbetter]
+    benchmarks = Benchmark.objects.all()
     checkedbenchmarks = []
     if 'ben' in data:
         checkedbenchmarks = []
@@ -207,7 +200,7 @@ def comparison(request):
     if not checkedenviros:
         checkedenviros = enviros
     
-    charts = ['normal bars', 'stacked bars', 'relative bars']
+    charts = ['vertical bars', 'horizontal bars']
     selectedchart = charts[0]
     if 'chart' in data and data['chart'] in charts:
         selectedchart = data['chart']
@@ -230,7 +223,6 @@ def comparison(request):
         'defaultenvironment': defaultenvironment,
         'executables': executables,
         'benchmarks': benchmarks,
-        'bench_units': json.dumps(bench_units),
         'enviros': enviros,
         'charts': charts,
         'selectedbaseline': selectedbaseline,
@@ -387,8 +379,7 @@ def timeline(request):
         'executables': executables,
         'benchmarks': benchmarks,
         'environments': environments
-    },
-    context_instance=RequestContext(request))
+    })
 
 def getchangestable(request):
     data = request.GET
