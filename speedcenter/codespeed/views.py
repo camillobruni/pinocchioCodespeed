@@ -379,7 +379,7 @@ def timeline(request):
         'executables': executables,
         'benchmarks': benchmarks,
         'environments': environments
-    })
+    }, context_instance=RequestContext(request))
 
 def getchangestable(request):
     data = request.GET
@@ -599,7 +599,8 @@ def changes(request):
         revisionboxes[p.name] = Revision.objects.filter(
             project=p
         ).order_by('-date')[:revlimit]
-    return render_to_response('codespeed/changes.html', locals())
+    return render_to_response('codespeed/changes.html', locals(),
+                context_instance=RequestContext(request))
 
 def displaylogs(request):
     rev = Revision.objects.get(id=request.GET['revisionid'])
