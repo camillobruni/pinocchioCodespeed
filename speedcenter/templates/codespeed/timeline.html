@@ -1,14 +1,14 @@
 {% extends "base.html" %}
 {% block title %}: Timeline{% endblock %}
 {% block script %}
-<!--[if IE]><script language="javascript" type="text/javascript" src="{{ settings.MEDIA_URL }}/js/jqplot/excanvas.min.js"></script><![endif]-->
-<link rel="stylesheet" type="text/css" href="{{ MEDIA_URL }}/js/jqplot/jquery.jqplot.min.css" />
-<script type="text/javascript" src="{{ MEDIA_URL }}/js/jqplot/jquery.jqplot.min.js"></script>
-<script type="text/javascript" src="{{ MEDIA_URL }}/js/jqplot/jqplot.cursor.min.js"></script>
-<script type="text/javascript" src="{{ MEDIA_URL }}/js/jqplot/jqplot.highlighter.min.js"></script>
-<script type="text/javascript" src="{{ MEDIA_URL }}/js/jqplot/jqplot.dateAxisRenderer.min.js"></script>
-<script type="text/javascript" src="{{ MEDIA_URL }}/js/jqplot/jqplot.canvasTextRenderer.min.js"></script>
-<script type="text/javascript" src="{{ MEDIA_URL }}/js/jqplot/jqplot.canvasAxisLabelRenderer.min.js"></script>
+<!--[if IE]><script language="javascript" type="text/javascript" src="{{MEDIA_URL}}/js/jqplot/excanvas.min.js"></script><![endif]-->
+<link rel="stylesheet" type="text/css" href="{{MEDIA_URL}}js/jqplot/jquery.jqplot.min.css" />
+<script type="text/javascript" src="{{MEDIA_URL}}js/jqplot/jquery.jqplot.min.js"></script>
+<script type="text/javascript" src="{{MEDIA_URL}}js/jqplot/jqplot.cursor.min.js"></script>
+<script type="text/javascript" src="{{MEDIA_URL}}js/jqplot/jqplot.highlighter.min.js"></script>
+<script type="text/javascript" src="{{MEDIA_URL}}js/jqplot/jqplot.dateAxisRenderer.min.js"></script>
+<script type="text/javascript" src="{{MEDIA_URL}}js/jqplot/jqplot.canvasTextRenderer.min.js"></script>
+<script type="text/javascript" src="{{MEDIA_URL}}js/jqplot/jqplot.canvasAxisLabelRenderer.min.js"></script>
 
 <script type="text/javascript">
   var baselineColor = "#d8b83f";
@@ -27,7 +27,7 @@
   }
   
   function permalinkToChanges(commitid, executableid, environment) {
-    window.location={{URL_PREFIX}}changes/?rev=" + commitid + "&" + "exe=" + executableid + "&env=" + environment;
+    window.location="{{URL_PREFIX}}changes/?rev=" + commitid + "&" + "exe=" + executableid + "&env=" + environment;
   }
   
   function myClickHandler(ev, gridpos, datapos, neighbor, plot) {
@@ -150,7 +150,7 @@
   }
   
   function render(data) {
-      $("#revisions").attr("disabled", false);
+    $("#revisions").attr("disabled", false);
     $("#plotgrid").html("");
     if(data["error"] != "None") {
       h = parseInt($("#content").css("height"));//get height for error message
@@ -181,19 +181,19 @@
   
   function refreshContent() {
     var h = parseInt($("#content").css("height"));//get height for loading text
-      $("#plotgrid").fadeOut("fast", function() {
-        $("#plotgrid").html(getLoadText("Loading...", h, true)).show();
-        $.getJSON("json/", getConfiguration(), render);
-      });
+    $("#plotgrid").fadeOut("fast", function() {
+      $("#plotgrid").html(getLoadText("Loading...", h, true)).show();
+      $.getJSON("json/", getConfiguration(), render);
+    });
   }
- 
+  
   function createReposLinks() {
 	var repos = "http://pinocchio.unibe.ch/websvn/revision.php?repname=pinocchio&rev="
 	$(".reposLink").each(function(index, el){
 		$(this).attr('href', repos+$(this).html())
 	})
   }
- 
+
   $(function() {
     $.ajaxSetup ({  
       cache: false  
@@ -221,7 +221,7 @@
     $("#baseline").next().css("background-color", baselineColor);
     
     $.jqplot.eventListenerHooks.push(['jqplotClick', myClickHandler]);
-    
+  
     refreshContent();
     createReposLinks();
   });
@@ -230,9 +230,9 @@
 
 {% block navigation %}
     <ul class="inline">
-      <li><a href="{{ URL_PREFIX }}/changes/">Changes</a></li>
-      <li class="current"><a href="{{ URL_PREFIX }}/timeline/">Timeline</a></li>
-      <li><a href="{{URL_PREFIX}}/comparison/">Comparison</a></li>
+      <li><a href="{{URL_PREFIX}}changes/">Changes</a></li>
+      <li class="current"><a href="{{URL_PREFIX}}timeline/">Timeline</a></li>
+      <li><a href="{{URL_PREFIX}}comparison/">Comparison</a></li>
     </ul>
 {% endblock %}
 
