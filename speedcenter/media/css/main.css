@@ -229,7 +229,7 @@ table.tablesorter {
 table#results thead tr th { padding-right: 10px; }
 table#results thead tr th.w {  width: 5em; }
 table#results thead tr th.bar {
-    background-image: url(/media/images/gridline_units.png);
+    background-image: url(speedcenter/media/images/gridline_units.png);
     background-repeat: no-repeat;
     background-position: left bottom;
     vertical-align: top;
@@ -244,7 +244,7 @@ table.tablesorter thead tr th {
     padding: 4px;
 }
 table.tablesorter thead tr .header {
-    background-image: url(/media/images/bg.gif);
+    background-image: url(speedcenter/media/images/bg.gif);
     background-repeat: no-repeat;
     background-position: center right;
     cursor: pointer;
@@ -270,10 +270,10 @@ table.tablesorter tbody tr.odd td {
     background-color:#F0F0F6;
 }
 table.tablesorter thead tr .headerSortUp {
-    background-image: url(/media/images/asc.gif);
+    background-image: url(speedcenter/media/images/asc.gif);
 }
 table.tablesorter thead tr .headerSortDown {
-    background-image: url(/media/images/desc.gif);
+    background-image: url(speedcenter/media/images/desc.gif);
 }
 table.tablesorter thead tr .headerSortDown, table.tablesorter thead tr .headerSortUp {
     background-color: #8dbdd8;
@@ -282,7 +282,7 @@ table.tablesorter thead tr .headerSortDown, table.tablesorter thead tr .headerSo
 table.tablesorter tbody td.text {text-align: left;}
 
 table.tablesorter tbody td.bar, table.tablesorter tfoot tr td.bar {
-    background-image: url(/media/images/gridline.png);
+    background-image: url(speedcenter/media/images/gridline.png);
     background-repeat: repeat;
     background-position: left top;
     text-align: left;
@@ -365,3 +365,8 @@ div.compplot { text-align: left; height: 450px; float: left; margin-right: 0.8em
 }
 * html .clearfix             { zoom: 1; } /* IE6 */
 *:first-child+html .clearfix { zoom: 1; } /* IE7 */
+
+#sourceFrame {
+    width: 100%;
+    height: 100%;
+}

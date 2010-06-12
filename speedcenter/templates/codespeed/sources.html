@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}: Timeline{% endblock %}
+
+{% block navigation %}
+    <ul class="inline">
+      <li><a href="{{URL_PREFIX}}changes/">Changes</a></li>
+      <li><a href="{{URL_PREFIX}}timeline/">Timeline</a></li>
+      <li><a href="{{URL_PREFIX}}comparison/">Comparison</a></li>
+      <li class="current"><a href="{{URL_PREFIX}}/sources/">Sources</a></li>
+    </ul>
+{% endblock %}
+
+{% block body %}
+<iframe id="sourceFrame" src="http://pinocchio.unibe.ch/source/nightly">
+
+</iframe>
+{% endblock %}
