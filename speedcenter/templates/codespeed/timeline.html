@@ -26,8 +26,8 @@
     return config;
   }
   
-  function permalinkToOverview(commitid, executableid, environment) {
-    window.location="../overview/?rev=" + commitid + "&" + "exe=" + executableid + "&env=" + environment;
+  function permalinkToChanges(commitid, executableid, environment) {
+    window.location={{URL_PREFIX}}changes/?rev=" + commitid + "&" + "exe=" + executableid + "&env=" + environment;
   }
   
   function myClickHandler(ev, gridpos, datapos, neighbor, plot) {
@@ -36,7 +36,7 @@
       var commitid = neighbor.data[3];
       var executableid = seriesindex[neighbor.seriesIndex];
       var environment = $("input[name='environments']:checked").val();
-      permalinkToOverview(commitid, executableid, environment);
+      permalinkToChanges(commitid, executableid, environment);
     }
   }
       
