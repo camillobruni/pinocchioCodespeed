@@ -91,7 +91,7 @@
       highlighter: {
         tooltipLocation: 'nw',
         yvalues: 3,
-        formatString:'<table class="jqplot-highlighter">  <tr><td>date:</td><td>%s</td></tr> <tr><td>result:</td><td>%s</td></tr> <tr><td>std dev:</td><td>%s</td></tr> <tr><td>commit:</td><td><a class="reposLink" href="http://pinocchio.unibe.ch/websvn/listing.php?repname=pinocchio&" onmouseover="createReposLinks()">%s</a></td></tr> </table>'
+        formatString:'<table class="jqplot-highlighter">  <tr><td>date:</td><td>%s</td></tr> <tr><td>result:</td><td>%s</td></tr> <tr><td>std dev:</td><td>%s</td></tr> <tr><td>commit:</td><td><a class="reposLink" href="http://github.com/dh83/p/commit/" onmouseover="createReposLinks()">%s</a></td></tr> </table>'
       },
       cursor:{show:false, zoom:true, showTooltip:false, clickReset:true}
     }
@@ -188,7 +188,7 @@
   }
   
   function createReposLinks() {
-	var repos = "http://pinocchio.unibe.ch/websvn/revision.php?repname=pinocchio&rev="
+	var repos = "http://github.com/dh83/p/commit/"
 	$(".reposLink").each(function(index, el){
 		$(this).attr('href', repos+$(this).html())
 	})
